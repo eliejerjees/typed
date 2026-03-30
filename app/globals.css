@@ -5,28 +5,22 @@
   --font-mono: var(--font-geist-mono);
 }
 
-html {
+html,
+body {
   height: 100%;
-  overflow: hidden;
   background: #000;
   color: #fff;
   font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-body {
-  height: 100%;
-  overflow: hidden;
-  background: #000;
-}
-
-/* Allow scrolling on the results screen */
-body:has(.results-scrollable) {
+/* Results screen scrolls within its own container */
+.results-scrollable {
+  height: 100vh;
   overflow-y: auto;
 }
 
-/* Hide scrollbar for processing/quiz screens but allow on results */
-.overflow-y-auto::-webkit-scrollbar {
+.results-scrollable::-webkit-scrollbar {
   width: 0;
 }
 

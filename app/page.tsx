@@ -67,7 +67,7 @@ export default function Home() {
     state === "quiz" ? `quiz-${currentQuestion}` : state;
 
   return (
-    <main className="overflow-hidden">
+    <main className="h-screen overflow-hidden">
       <AnimatePresence mode="wait">
         <motion.div
           key={screenKey}
