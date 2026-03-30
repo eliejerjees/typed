@@ -5,13 +5,6 @@ import { Question, Answer } from "@/data/questions";
 import AnswerCard from "./AnswerCard";
 import ProgressBar from "./ProgressBar";
 
-interface QuizScreenProps {
-  question: Question;
-  questionIndex: number;
-  totalQuestions: number;
-  onAnswer: (answer: Answer) => void;
-}
-
 const gradients = [
   "from-violet-600 via-purple-600 to-indigo-700",
   "from-pink-600 via-rose-500 to-orange-500",
@@ -23,28 +16,28 @@ const gradients = [
   "from-amber-500 via-orange-500 to-red-500",
 ];
 
+interface QuizScreenProps {
+  question: Question;
+  questionIndex: number;
+  totalQuestions: number;
+  onAnswer: (answer: Answer) => void;
+}
+
 export default function QuizScreen({
   question,
   questionIndex,
   totalQuestions,
   onAnswer,
 }: QuizScreenProps) {
-  const gradient = gradients[questionIndex % gradients.length];
-
   return (
     <div
-      className={`flex min-h-screen w-full flex-col items-center justify-center bg-gradient-to-br ${gradient} relative`}
+      className={`relative flex min-h-screen w-full flex-col items-center justify-center bg-gradient-to-br ${gradients[questionIndex % gradients.length]}`}
     >
-      {/* Floating blobs */}
+      {/* Floating blob */}
       <motion.div
         className="absolute -top-20 -left-20 h-72 w-72 rounded-full bg-white/10 blur-3xl"
         animate={{ x: [0, 50, -30, 0], y: [0, -40, 30, 0] }}
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute -right-16 bottom-20 h-64 w-64 rounded-full bg-white/10 blur-3xl"
-        animate={{ x: [0, -40, 20, 0], y: [0, 30, -50, 0] }}
-        transition={{ duration: 13, repeat: Infinity, ease: "easeInOut" }}
       />
 
       <ProgressBar current={questionIndex} total={totalQuestions} />

@@ -5,7 +5,6 @@ export interface TypeResult {
   traits: string[];
   mbti: string;
   gradient: string;
-  accentColor: string;
   movies: string[];
   artists: string[];
   shows: string[];
@@ -20,7 +19,6 @@ export const types: TypeResult[] = [
     traits: ["emotional", "introspective", "nostalgic"],
     mbti: "INFP",
     gradient: "from-rose-500 via-pink-600 to-purple-700",
-    accentColor: "#f472b6",
     movies: ["Call Me by Your Name", "Her", "Lost in Translation"],
     artists: ["Phoebe Bridgers", "Frank Ocean", "Bon Iver"],
     shows: ["Normal People", "Fleabag"],
@@ -33,7 +31,6 @@ export const types: TypeResult[] = [
     traits: ["chaotic", "adventurous", "analytical"],
     mbti: "ENTP",
     gradient: "from-orange-500 via-red-500 to-pink-600",
-    accentColor: "#fb923c",
     movies: ["Everything Everywhere All at Once", "Fight Club", "Parasite"],
     artists: ["100 gecs", "Tyler, the Creator", "Charli XCX"],
     shows: ["Atlanta", "The Bear"],
@@ -46,7 +43,6 @@ export const types: TypeResult[] = [
     traits: ["analytical", "introspective", "adventurous"],
     mbti: "INTJ",
     gradient: "from-cyan-500 via-blue-600 to-indigo-700",
-    accentColor: "#22d3ee",
     movies: ["Arrival", "The Grand Budapest Hotel", "Mulholland Drive"],
     artists: ["Radiohead", "Tame Impala", "Björk"],
     shows: ["Severance", "Dark"],
@@ -59,7 +55,6 @@ export const types: TypeResult[] = [
     traits: ["emotional", "adventurous", "chaotic"],
     mbti: "ENFP",
     gradient: "from-violet-500 via-purple-500 to-fuchsia-600",
-    accentColor: "#a78bfa",
     movies: ["Lady Bird", "The Secret Life of Walter Mitty", "Moonlight"],
     artists: ["Lorde", "Lana Del Rey", "SZA"],
     shows: ["Euphoria", "Sex Education"],
@@ -72,7 +67,6 @@ export const types: TypeResult[] = [
     traits: ["nostalgic", "emotional", "introspective"],
     mbti: "ISFJ",
     gradient: "from-amber-400 via-orange-500 to-rose-500",
-    accentColor: "#fbbf24",
     movies: ["The Perks of Being a Wallflower", "Juno", "Stand by Me"],
     artists: ["Taylor Swift", "The 1975", "Fleetwood Mac"],
     shows: ["Gilmore Girls", "Stranger Things"],
@@ -85,7 +79,6 @@ export const types: TypeResult[] = [
     traits: ["adventurous", "analytical", "chaotic"],
     mbti: "ESTP",
     gradient: "from-emerald-400 via-teal-500 to-cyan-600",
-    accentColor: "#34d399",
     movies: ["Spirited Away", "City of God", "The Lobster"],
     artists: ["FKA Twigs", "Gorillaz", "Khruangbin"],
     shows: ["Black Mirror", "Beef"],
@@ -98,7 +91,6 @@ export const types: TypeResult[] = [
     traits: ["introspective", "emotional", "analytical"],
     mbti: "INFJ",
     gradient: "from-indigo-600 via-purple-700 to-slate-800",
-    accentColor: "#818cf8",
     movies: ["Eternal Sunshine of the Spotless Mind", "Blade Runner 2049", "The Tree of Life"],
     artists: ["Sufjan Stevens", "Beach House", "Nick Drake"],
     shows: ["Mr. Robot", "The Leftovers"],
@@ -111,7 +103,6 @@ export const types: TypeResult[] = [
     traits: ["chaotic", "nostalgic", "adventurous"],
     mbti: "ESFP",
     gradient: "from-yellow-400 via-lime-400 to-green-500",
-    accentColor: "#a3e635",
     movies: ["Knives Out", "Spider-Verse", "The Social Network"],
     artists: ["Doja Cat", "Bad Bunny", "Daft Punk"],
     shows: ["Succession", "Abbott Elementary"],
