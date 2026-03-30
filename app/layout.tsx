@@ -8,7 +8,7 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Typed — Your Taste Has a Type",
+  title: "Typed",
   description: "Discover your media personality type through a quick, visual quiz.",
 };
 
