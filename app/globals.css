@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  color: #fff;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+}
+
+/* Allow scrolling on the results screen */
+body:has(.results-scrollable) {
+  overflow-y: auto;
+}
+
+/* Hide scrollbar for processing/quiz screens but allow on results */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 0;
+}
+
+::selection {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
