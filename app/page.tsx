@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { questions, Answer } from "@/data/questions";
 import { calculateTraits, determineType, TraitScores } from "@/lib/scoring";
@@ -21,44 +21,46 @@ const pageVariants = {
 export default function Home() {
   const [state, setState] = useState<AppState>("landing");
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<Answer[]>([]);
   const [result, setResult] = useState<TypeResult | null>(null);
   const [scores, setScores] = useState<TraitScores>({});
 
+  const answersRef = useRef<Answer[]>([]);
+  const questionRef = useRef(0);
+
   const handleStart = useCallback(() => {
-    setState("quiz");
+    answersRef.current = [];
+    questionRef.current = 0;
     setCurrentQuestion(0);
-    setAnswers([]);
+    setState("quiz");
   }, []);
 
-  const handleAnswer = useCallback(
-    (answer: Answer) => {
-      const newAnswers = [...answers, answer];
-      setAnswers(newAnswers);
+  const handleAnswer = useCallback((answer: Answer) => {
+    answersRef.current = [...answersRef.current, answer];
+    const qi = questionRef.current;
 
-      if (currentQuestion < questions.length - 1) {
-        setCurrentQuestion((prev) => prev + 1);
-      } else {
-        setState("processing");
-        const finalScores = calculateTraits(newAnswers);
-        const finalResult = determineType(newAnswers);
-        setScores(finalScores);
-        setResult(finalResult);
+    if (qi < questions.length - 1) {
+      questionRef.current = qi + 1;
+      setCurrentQuestion(qi + 1);
+    } else {
+      const finalScores = calculateTraits(answersRef.current);
+      const finalResult = determineType(answersRef.current);
+      setScores(finalScores);
+      setResult(finalResult);
+      setState("processing");
 
-        setTimeout(() => {
-          setState("result");
-        }, 2200);
-      }
-    },
-    [answers, currentQuestion]
-  );
+      setTimeout(() => {
+        setState("result");
+      }, 2200);
+    }
+  }, []);
 
   const handleRestart = useCallback(() => {
-    setState("landing");
+    answersRef.current = [];
+    questionRef.current = 0;
     setCurrentQuestion(0);
-    setAnswers([]);
     setResult(null);
     setScores({});
+    setState("landing");
   }, []);
 
   const screenKey =
@@ -78,7 +80,7 @@ export default function Home() {
           {state === "landing" && (
             <LandingScreen onStart={handleStart} />
           )}
-          {state === "quiz" && (
+          {state === "quiz" && questions[currentQuestion] && (
             <QuizScreen
               question={questions[currentQuestion]}
               questionIndex={currentQuestion}

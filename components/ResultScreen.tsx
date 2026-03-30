@@ -16,7 +16,7 @@ function TraitLabel({ trait, index }: { trait: string; index: number }) {
       initial={{ opacity: 0, scale: 0.5 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: 1.2 + index * 0.15, type: "spring", stiffness: 200 }}
-      className="rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-sm font-semibold text-white backdrop-blur-sm"
+      className="rounded-full border border-white/30 bg-white/10 px-7 py-3 text-base font-semibold text-white backdrop-blur-sm"
     >
       {trait}
     </motion.span>
@@ -38,14 +38,14 @@ function RecommendationSection({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.5 }}
     >
-      <h4 className="mb-2 text-xs font-bold tracking-widest text-white/50 uppercase">
+      <h4 className="mb-4 text-sm font-bold tracking-widest text-white/50 uppercase">
         {title}
       </h4>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-4">
         {items.map((item) => (
           <span
             key={item}
-            className="rounded-lg bg-white/10 px-3 py-1.5 text-sm font-medium text-white"
+            className="rounded-xl bg-white/10 px-6 py-3.5 text-base font-medium text-white"
           >
             {item}
           </span>
@@ -81,7 +81,7 @@ export default function ResultScreen({
         transition={{ duration: 15, repeat: Infinity }}
       />
 
-      <div className="relative z-10 flex w-full max-w-lg flex-col items-center gap-6 px-6 py-16">
+      <div className="relative z-10 flex w-full max-w-2xl flex-col items-center gap-8 px-8 py-20">
         {/* "You are" label */}
         <motion.p
           initial={{ opacity: 0, y: -10 }}
@@ -112,13 +112,13 @@ export default function ResultScreen({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.9, duration: 0.6 }}
-          className="max-w-md text-center text-base leading-relaxed text-white/80 md:text-lg"
+          className="max-w-md text-center text-lg leading-relaxed text-white/80 md:text-xl"
         >
           {result.description}
         </motion.p>
 
         {/* Traits */}
-        <div className="flex flex-wrap justify-center gap-2">
+        <div className="flex flex-wrap justify-center gap-4">
           {topTraits.map((trait, i) => (
             <TraitLabel key={trait} trait={trait} index={i} />
           ))}
@@ -129,17 +129,17 @@ export default function ResultScreen({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.6 }}
-          className="rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-center backdrop-blur-sm"
+          className="rounded-2xl border border-white/20 bg-white/10 px-10 py-5 text-center backdrop-blur-sm"
         >
           <p className="text-xs font-bold tracking-widest text-white/50 uppercase">
             Closest MBTI
           </p>
-          <p className="text-2xl font-black text-white">{result.mbti}</p>
+          <p className="mt-1 text-3xl font-black text-white">{result.mbti}</p>
         </motion.div>
 
         {/* Recommendations */}
         <motion.div
-          className="mt-4 flex w-full flex-col gap-6"
+          className="mt-6 flex w-full flex-col gap-10"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.8 }}
@@ -175,10 +175,8 @@ export default function ResultScreen({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 2.6 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
           onClick={onRestart}
-          className="mt-6 cursor-pointer rounded-full bg-white px-8 py-3 text-sm font-bold tracking-wide text-black uppercase"
+          className="mt-8 cursor-pointer rounded-full bg-white px-10 py-4 text-lg font-bold tracking-wide text-black uppercase transition-all duration-200 ease-out hover:scale-105 active:scale-95"
         >
           Retake Quiz
         </motion.button>
@@ -187,7 +185,7 @@ export default function ResultScreen({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 2.8 }}
-          className="pb-8 text-xs text-white/30"
+          className="pb-10 text-xs text-white/30"
         >
           typed.
         </motion.p>
