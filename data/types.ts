@@ -107,7 +107,7 @@ export const types: TypeResult[] = [
     name: "Pop Culture Maximalist",
     slug: "pop-culture-maximalist",
     description:
-      "You're plugged into everything and loving it. Mainstream or underground — if it's good, it's good. You're the friend everyone asks for recommendations, and you always deliver.",
+      "You're plugged into everything and loving it. Mainstream or underground if it's good, it's good. You're the friend everyone asks for recommendations, and you always deliver.",
     traits: ["chaotic", "nostalgic", "adventurous"],
     mbti: "ESFP",
     gradient: "from-yellow-400 via-lime-400 to-green-500",
