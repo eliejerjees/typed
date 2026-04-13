@@ -12,7 +12,7 @@ export interface TypeResult {
 
 export const types: TypeResult[] = [
   {
-    name: "Reflective Romantic",
+    name: "Reflecive Romantic",
     slug: "reflective-romantic",
     description:
       "You feel everything deeply and you're not sorry about it. Your playlists are emotional landscapes and your favorite movies leave you staring at the ceiling at 2am. You find beauty in the bittersweet.",
