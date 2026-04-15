@@ -64,7 +64,7 @@ export default function ResultScreen({
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 1.2 + i * 0.15, type: "spring", stiffness: 200 }}
-              className="rounded-full border border-white/30 bg-white/10 px-7 py-3 text-base font-semibold text-white backdrop-blur-sm"
+              className="rounded-xl border border-white/30 bg-white/10 px-7 py-3 text-base font-semibold text-white backdrop-blur-sm"
             >
               {trait}
             </motion.span>
@@ -124,7 +124,7 @@ export default function ResultScreen({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 2.6 }}
           onClick={onRestart}
-          className="mt-8 cursor-pointer rounded-full bg-white px-10 py-4 text-lg font-bold tracking-wide text-black uppercase transition-all duration-200 ease-out hover:scale-105 active:scale-95"
+          className="mt-8 cursor-pointer rounded-2xl bg-white px-10 py-4 text-lg font-bold tracking-wide text-black uppercase transition-all duration-200 ease-out hover:scale-105 active:scale-95"
         >
           Retake Quiz
         </motion.button>

@@ -16,9 +16,9 @@ export default function ProgressBar({ current, total }: ProgressBarProps) {
         <span className="text-xs font-bold tracking-widest text-white/60 uppercase">
           {current + 1}/{total}
         </span>
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/20">
+        <div className="h-1.5 flex-1 overflow-hidden rounded-md bg-white/20">
           <motion.div
-            className="h-full rounded-full bg-white"
+            className="h-full rounded-md bg-white"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.5, ease: "easeOut" }}

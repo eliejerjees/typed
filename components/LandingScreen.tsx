@@ -34,7 +34,7 @@ export default function LandingScreen({ onStart }: { onStart: () => void }) {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 1.3, duration: 0.6, type: "spring" }}
           onClick={onStart}
-          className="mt-6 cursor-pointer rounded-full bg-white px-14 py-5 text-xl font-black tracking-wider text-black uppercase shadow-2xl transition-all duration-200 ease-out hover:scale-110 hover:shadow-[0_0_40px_rgba(255,255,255,0.3)] active:scale-90"
+          className="mt-6 cursor-pointer rounded-2xl bg-white px-14 py-5 text-xl font-black tracking-wider text-black uppercase shadow-2xl transition-all duration-200 ease-out hover:scale-110 hover:shadow-[0_0_40px_rgba(255,255,255,0.3)] active:scale-90"
         >
           Start
         </motion.button>

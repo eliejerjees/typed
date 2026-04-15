@@ -24,9 +24,9 @@ export default function ProcessingScreen() {
           Analyzing your taste…
         </motion.h2>
 
-        <div className="h-1 w-48 overflow-hidden rounded-full bg-white/20">
+        <div className="h-1 w-48 overflow-hidden rounded-md bg-white/20">
           <motion.div
-            className="h-full rounded-full bg-white"
+            className="h-full rounded-md bg-white"
             initial={{ width: "0%" }}
             animate={{ width: "100%" }}
             transition={{ duration: 1.8, ease: "easeInOut" }}
