@@ -4,19 +4,7 @@ import { motion } from "framer-motion";
 
 export default function LandingScreen({ onStart }: { onStart: () => void }) {
   return (
-    <div className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-violet-700 via-fuchsia-600 to-orange-500 px-6">
-      {/* Floating blobs */}
-      <motion.div
-        className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-white/10 blur-3xl"
-        animate={{ x: [0, 80, -40, 0], y: [0, -60, 40, 0], scale: [1, 1.2, 0.9, 1] }}
-        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute top-1/2 -right-20 h-80 w-80 rounded-full bg-white/10 blur-3xl"
-        animate={{ x: [0, -60, 30, 0], y: [0, 50, -70, 0] }}
-        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-      />
-
+    <div className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-fuchsia-600 px-6">
       <motion.div
         className="relative z-10 flex flex-col items-center gap-6"
         initial={{ opacity: 0 }}

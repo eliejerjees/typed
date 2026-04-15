@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 
 export default function ProcessingScreen() {
   return (
-    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-purple-900">
       {/* Pulsing rings */}
       {[0, 1, 2].map((i) => (
         <motion.div
