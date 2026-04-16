@@ -1,70 +1,327 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { questions, Answer } from "@/data/questions";
-import { determineType } from "@/lib/scoring";
-import LandingScreen from "@/components/LandingScreen";
-import QuizScreen from "@/components/QuizScreen";
-import ProcessingScreen from "@/components/ProcessingScreen";
-import ResultScreen from "@/components/ResultScreen";
 
-type AppState = "landing" | "quiz" | "processing" | "result";
+import type {
+  AppData,
+  AppStep,
+  BracketState,
+  KOTHState,
+  ActorGameState,
+  Artist,
+  Song,
+  TypedResult,
+} from "@/lib/types";
+import { DEFAULT_APP_DATA, buildInitialBracket } from "@/lib/types";
+
+import LandingScreen from "@/components/Landing/LandingScreen";
+import ProcessingScreen from "@/components/Processing/ProcessingScreen";
+import ResultScreen from "@/components/Result/ResultScreen";
+import MusicGenresStep from "@/components/steps/MusicGenres/MusicGenresStep";
+import TopArtistsStep from "@/components/steps/TopArtists/TopArtistsStep";
+import SongBracketStep from "@/components/steps/SongBracket/SongBracketStep";
+import MovieGenresStep from "@/components/steps/MovieGenres/MovieGenresStep";
+import ActorGameStep from "@/components/steps/ActorGame/ActorGameStep";
+import MovieKOTHStep from "@/components/steps/MovieKOTH/MovieKOTHStep";
+import TopShowsStep from "@/components/steps/TopShows/TopShowsStep";
+
+const LS_KEY = "typed_session_v2";
+const LS_STEP_KEY = "typed_step_v2";
+
+// ─── Page transition variants ─────────────────────────────────────────────────
+const pageVariants = {
+  initial: { opacity: 0, y: 16, scale: 0.99 },
+  animate: { opacity: 1, y: 0, scale: 1 },
+  exit: { opacity: 0, y: -16, scale: 1.01 },
+};
+
+const pageTransition = { duration: 0.38, ease: "easeInOut" as const };
 
 export default function Home() {
-  const [state, setState] = useState<AppState>("landing");
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Answer[]>([]);
+  const [step, setStep] = useState<AppStep>("landing");
+  const [appData, setAppData] = useState<AppData>(DEFAULT_APP_DATA);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isFetchingPool, setIsFetchingPool] = useState(false);
+  const [hasProgress, setHasProgress] = useState(false);
+  const mountedRef = useRef(true);
 
-  function handleStart() {
-    setAnswers([]);
-    setQuestionIndex(0);
-    setState("quiz");
+  // ── Detect saved progress client-side only (avoids hydration mismatch) ────
+  useEffect(() => {
+    try {
+      setHasProgress(!!localStorage.getItem(LS_KEY));
+    } catch { /* ignore */ }
+  }, []);
+
+  function saveToStorage(s: AppStep, d: AppData) {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(d));
+      localStorage.setItem(LS_STEP_KEY, s);
+    } catch { /* ignore */ }
   }
 
-  function handleAnswer(answer: Answer) {
-    const updated = [...answers, answer];
-    setAnswers(updated);
+  function clearStorage() {
+    try {
+      localStorage.removeItem(LS_KEY);
+      localStorage.removeItem(LS_STEP_KEY);
+    } catch { /* ignore */ }
+  }
 
-    if (questionIndex < questions.length - 1) {
-      setQuestionIndex(questionIndex + 1);
-    } else {
-      setState("processing");
-      setTimeout(() => setState("result"), 2200);
+  function loadFromStorage(): { step: AppStep; data: AppData } | null {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      const savedStep = localStorage.getItem(LS_STEP_KEY) as AppStep | null;
+      if (!raw || !savedStep) return null;
+      return { step: savedStep, data: JSON.parse(raw) as AppData };
+    } catch {
+      return null;
     }
   }
 
-  function handleRestart() {
-    setAnswers([]);
-    setQuestionIndex(0);
-    setState("landing");
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function update(partial: Partial<AppData>, nextStep?: AppStep) {
+    setAppData((prev) => {
+      const next = { ...prev, ...partial };
+      const s = nextStep ?? step;
+      saveToStorage(s, next);
+      return next;
+    });
+    if (nextStep) setStep(nextStep);
   }
 
-  const result = state === "result" ? determineType(answers) : null;
-  const screenKey = state === "quiz" ? `quiz-${questionIndex}` : state;
+  function go(nextStep: AppStep) {
+    setStep(nextStep);
+    saveToStorage(nextStep, appData);
+  }
 
+  // ── Fetch song pool then start bracket (Last.fm) ─────────────────────────
+  async function fetchSongPoolAndGo(
+    artists: Artist[],
+    genres: string[]
+  ) {
+    setIsFetchingPool(true);
+    setFetchError(null);
+    try {
+      const res = await fetch("/api/music/pool", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          artistNames: artists.map((a) => a.name),
+          genres,
+        }),
+      });
+      const data = await res.json();
+      const songs: Song[] = data.songs ?? [];
+      // Merge tag data returned from pool into stored artists
+      const enrichedArtists: Artist[] = data.enrichedArtists ?? artists;
+
+      if (songs.length < 16) {
+        setFetchError("Couldn't load enough songs. Try different artists.");
+        setIsFetchingPool(false);
+        return;
+      }
+
+      const bracket = buildInitialBracket(songs);
+      update(
+        { songPool: songs, bracketState: bracket, topArtists: enrichedArtists },
+        "song-bracket"
+      );
+    } catch {
+      setFetchError("Failed to load songs. Check your connection.");
+    } finally {
+      if (mountedRef.current) setIsFetchingPool(false);
+    }
+  }
+
+  // ── Generate final result ─────────────────────────────────────────────────
+  async function generateResult(data: AppData) {
+    try {
+      const res = await fetch("/api/result", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appData: data }),
+      });
+      const json = await res.json();
+      const result: TypedResult = json.result;
+
+      if (mountedRef.current) {
+        update({ finalResult: result }, "result");
+        clearStorage(); // Clear session after result
+      }
+    } catch {
+      // The API route has a fallback — should not reach here
+      if (mountedRef.current) {
+        go("result");
+      }
+    }
+  }
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  // ─── Handlers ──────────────────────────────────────────────────────────────
+
+  function handleStart() {
+    clearStorage();
+    setAppData(DEFAULT_APP_DATA);
+    go("music-genres");
+  }
+
+  function handleRestore() {
+    const saved = loadFromStorage();
+    if (!saved) return;
+    setAppData(saved.data);
+    setStep(saved.step);
+  }
+
+  function handleMusicGenres(genres: string[], subgenres: Record<string, string[]>) {
+    update({ musicGenres: genres, musicSubgenres: subgenres }, "top-artists");
+  }
+
+  function handleTopArtists(artists: Artist[]) {
+    update({ topArtists: artists });
+    fetchSongPoolAndGo(artists, appData.musicGenres);
+  }
+
+  function handleBracketComplete(bracket: BracketState) {
+    update({ bracketState: bracket }, "movie-genres");
+  }
+
+  function handleMovieGenres(genres: string[], genreIds: number[]) {
+    update({ movieGenres: genres, movieGenreIds: genreIds }, "actor-game");
+  }
+
+  function handleActorGameComplete(actorState: ActorGameState) {
+    update({ actorGameState: actorState }, "movie-koth");
+  }
+
+  function handleKOTHComplete(kothState: KOTHState) {
+    update({ kothState }, "top-shows");
+  }
+
+  function handleTopShows(shows: string[]) {
+    const nextData: AppData = { ...appData, topShows: shows };
+    setAppData(nextData);
+    saveToStorage("processing", nextData);
+    setStep("processing");
+    generateResult(nextData);
+  }
+
+  function handleRetake() {
+    clearStorage();
+    setAppData(DEFAULT_APP_DATA);
+    setStep("landing");
+  }
+
+  // ─── Render ─────────────────────────────────────────────────────────────────
   return (
-    <main className="h-screen overflow-hidden">
+    <main style={{ minHeight: "100vh" }}>
       <AnimatePresence mode="wait">
         <motion.div
-          key={screenKey}
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 1.02 }}
-          transition={{ duration: 0.4, ease: "easeInOut" }}
+          key={step}
+          variants={pageVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={pageTransition}
         >
-          {state === "landing" && <LandingScreen onStart={handleStart} />}
-          {state === "quiz" && (
-            <QuizScreen
-              question={questions[questionIndex]}
-              questionIndex={questionIndex}
-              totalQuestions={questions.length}
-              onAnswer={handleAnswer}
+          {step === "landing" && (
+            <LandingScreen
+              onStart={handleStart}
+              hasProgress={hasProgress}
+              onRestore={handleRestore}
             />
           )}
-          {state === "processing" && <ProcessingScreen />}
-          {state === "result" && result && (
-            <ResultScreen result={result} onRestart={handleRestart} />
+
+          {step === "music-genres" && (
+            <MusicGenresStep onNext={handleMusicGenres} />
+          )}
+
+          {step === "top-artists" && (
+            <div>
+              <TopArtistsStep
+                onNext={handleTopArtists}
+                initialArtists={appData.topArtists}
+              />
+              {isFetchingPool && (
+                <div style={{
+                  position: "fixed",
+                  inset: 0,
+                  background: "rgba(0,0,0,0.6)",
+                  backdropFilter: "blur(8px)",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 16,
+                  zIndex: 200,
+                }}>
+                  <p style={{ color: "#fff", fontWeight: 900, fontSize: "1.5rem" }}>
+                    Building your bracket…
+                  </p>
+                  <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.875rem" }}>
+                    fetching songs from Spotify
+                  </p>
+                </div>
+              )}
+              {fetchError && (
+                <div style={{
+                  position: "fixed",
+                  bottom: 32,
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  background: "#ef4444",
+                  color: "#fff",
+                  padding: "12px 24px",
+                  borderRadius: 12,
+                  fontWeight: 700,
+                  zIndex: 200,
+                }}>
+                  {fetchError}
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === "song-bracket" && appData.bracketState && (
+            <SongBracketStep
+              bracket={appData.bracketState}
+              onComplete={handleBracketComplete}
+            />
+          )}
+
+          {step === "movie-genres" && (
+            <MovieGenresStep onNext={handleMovieGenres} />
+          )}
+
+          {step === "actor-game" && (
+            <ActorGameStep
+              movieGenreIds={appData.movieGenreIds}
+              onComplete={handleActorGameComplete}
+            />
+          )}
+
+          {step === "movie-koth" && (
+            <MovieKOTHStep
+              movieGenreIds={appData.movieGenreIds}
+              keptActorIds={appData.actorGameState?.kept.map((a) => a.id) ?? []}
+              onComplete={handleKOTHComplete}
+            />
+          )}
+
+          {step === "top-shows" && (
+            <TopShowsStep onNext={handleTopShows} />
+          )}
+
+          {step === "processing" && <ProcessingScreen />}
+
+          {step === "result" && appData.finalResult && (
+            <ResultScreen
+              result={appData.finalResult}
+              onRetake={handleRetake}
+            />
           )}
         </motion.div>
       </AnimatePresence>

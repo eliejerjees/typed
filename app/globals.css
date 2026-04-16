@@ -1,30 +1,141 @@
-@import "tailwindcss";
-
-@theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ─── CSS Reset ────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-html,
+html {
+  height: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   height: 100%;
+  min-height: 100vh;
   background: #000;
   color: #fff;
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
 }
 
-/* Results screen scrolls within its own container */
-.results-scrollable {
-  height: 100vh;
-  overflow-y: auto;
+img, video {
+  display: block;
+  max-width: 100%;
 }
 
-.results-scrollable::-webkit-scrollbar {
+button {
+  font: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input, select, textarea {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul, ol {
+  list-style: none;
+}
+
+/* ─── Design Tokens ─────────────────────────────────────────────────────────── */
+:root {
+  /* Step colors */
+  --color-fuchsia:  #c026d3;
+  --color-violet:   #7c3aed;
+  --color-rose:     #e11d48;
+  --color-blue:     #1d4ed8;
+  --color-emerald:  #059669;
+  --color-orange:   #ea580c;
+  --color-indigo:   #4338ca;
+  --color-amber:    #d97706;
+  --color-purple:   #7e22ce;
+
+  /* Glass effect tokens */
+  --glass-bg:       rgba(255, 255, 255, 0.1);
+  --glass-bg-hover: rgba(255, 255, 255, 0.18);
+  --glass-border:   rgba(255, 255, 255, 0.2);
+  --glass-border-strong: rgba(255, 255, 255, 0.35);
+  --glass-blur:     blur(12px);
+
+  /* Typography scale */
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.25rem;
+  --text-2xl:  1.5rem;
+  --text-3xl:  1.875rem;
+  --text-4xl:  2.25rem;
+  --text-5xl:  3rem;
+  --text-6xl:  3.75rem;
+  --text-7xl:  4.5rem;
+  --text-8xl:  6rem;
+  --text-9xl:  8rem;
+
+  /* Spacing */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* Border radius */
+  --radius-sm:  8px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-xl:  20px;
+  --radius-2xl: 24px;
+  --radius-3xl: 32px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-glow: 0 0 40px rgba(255, 255, 255, 0.15);
+
+  /* Transitions */
+  --transition-fast:   150ms ease-out;
+  --transition-base:   250ms ease-out;
+  --transition-slow:   400ms ease-in-out;
+
+  /* Dynamic step color — set per step via inline style */
+  --step-color: #c026d3;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
   width: 0;
+  height: 0;
 }
 
+/* ─── Selection ─────────────────────────────────────────────────────────────── */
 ::selection {
   background: rgba(255, 255, 255, 0.2);
-  color: white;
+  color: #fff;
+}
+
+/* ─── Focus ─────────────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+/* ─── Global app container ──────────────────────────────────────────────────── */
+#__next,
+main {
+  min-height: 100vh;
 }

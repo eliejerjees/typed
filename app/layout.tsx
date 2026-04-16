@@ -9,7 +9,7 @@ const geistSans = Geist({
 
 export const metadata: Metadata = {
   title: "Typed",
-  description: "Discover your media personality type through a quick, visual quiz.",
+  description: "Your taste has a type. Music + movies combined into one result.",
 };
 
 export default function RootLayout({
@@ -18,8 +18,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
-      <body className="min-h-full bg-black">{children}</body>
+    <html lang="en" style={{ fontFamily: "var(--font-geist-sans)" }} className={geistSans.variable}>
+      <body>{children}</body>
     </html>
   );
 }
