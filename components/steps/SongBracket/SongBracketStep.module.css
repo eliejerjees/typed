@@ -1,0 +1,412 @@
+.container {
+  min-height: 100vh;
+  width: 100%;
+  background-color: #1d4ed8;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.container::after {
+  content: "";
+  position: absolute;
+  top: -10%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80vw;
+  height: 80vw;
+  max-width: 700px;
+  max-height: 700px;
+  background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ─── Loading ─────────────────────────────────────────────────────────────── */
+.loading {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background-color: #1d4ed8;
+}
+
+.loadingTitle {
+  font-size: var(--text-2xl);
+  font-weight: 900;
+  color: #fff;
+}
+
+.loadingBar {
+  width: 200px;
+  height: 3px;
+  background: rgba(255,255,255,0.2);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.loadingFill {
+  height: 100%;
+  background: #fff;
+  border-radius: var(--radius-full);
+  animation: loadSlide 2.5s ease-in-out infinite;
+}
+
+@keyframes loadSlide {
+  0% { width: 0; transform: translateX(0); }
+  50% { width: 100%; transform: translateX(0); }
+  100% { width: 100%; transform: translateX(100%); }
+}
+
+.loadingSub {
+  font-size: var(--text-sm);
+  color: rgba(255,255,255,0.45);
+}
+
+/* ─── Layout ─────────────────────────────────────────────────────────────── */
+.layout {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80px 16px 40px;
+  gap: 24px;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.eyebrow {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.heading {
+  font-size: var(--text-2xl);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+@media (min-width: 640px) {
+  .heading { font-size: var(--text-3xl); }
+}
+
+.roundLabel {
+  font-size: var(--text-sm);
+  color: rgba(255,255,255,0.55);
+}
+
+/* ─── Bracket progress strip ─────────────────────────────────────────────── */
+.bracketStrip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--radius-full);
+  padding: 8px 16px;
+}
+
+.stripRound {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stripDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  transition: background var(--transition-fast);
+}
+
+.stripDotDone {
+  background: rgba(255,255,255,0.7);
+}
+
+.stripDotActive {
+  background: #fff;
+  box-shadow: 0 0 6px rgba(255,255,255,0.8);
+}
+
+.stripSep {
+  width: 12px;
+  height: 1px;
+  background: rgba(255,255,255,0.2);
+}
+
+.stripLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.4);
+  text-transform: uppercase;
+  margin-left: 2px;
+}
+
+/* ─── Matchup area ────────────────────────────────────────────────────────── */
+.matchup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 520px;
+}
+
+.vs {
+  font-size: var(--text-2xl);
+  font-weight: 900;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 0.15em;
+  flex-shrink: 0;
+}
+
+/* ─── Song card ───────────────────────────────────────────────────────────── */
+.songCard {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: var(--glass-blur);
+  border-radius: var(--radius-xl);
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: all 200ms ease-out;
+  text-align: left;
+}
+
+.songCard:hover {
+  background: rgba(255,255,255,0.2);
+  border-color: rgba(255,255,255,0.4);
+  transform: scale(1.015);
+}
+
+.songCard:active {
+  transform: scale(0.98);
+}
+
+.albumCover {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.1);
+}
+
+.albumCoverPlaceholder {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.songInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.songTitle {
+  font-size: var(--text-base);
+  font-weight: 800;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+@media (min-width: 480px) {
+  .songTitle { font-size: var(--text-lg); }
+}
+
+.songArtist {
+  font-size: var(--text-sm);
+  color: rgba(255,255,255,0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.chooseArrow {
+  font-size: 20px;
+  color: rgba(255,255,255,0.3);
+  transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.songCard:hover .chooseArrow {
+  color: rgba(255,255,255,0.7);
+  transform: translateX(4px);
+}
+
+/* ─── Winner revealed ─────────────────────────────────────────────────────── */
+.winnerCard {
+  border-color: rgba(255,255,255,0.6);
+  background: rgba(255,255,255,0.22);
+}
+
+/* ─── Bracket mini-map ────────────────────────────────────────────────────── */
+.bracketMap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(0,0,0,0.15);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-xl);
+  padding: 16px 20px;
+}
+
+.bracketMapTitle {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+  margin-bottom: 8px;
+}
+
+.bracketRoundRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bracketRoundName {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.bracketSlots {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.bracketSlotChip {
+  height: 20px;
+  min-width: 60px;
+  max-width: 100px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  overflow: hidden;
+}
+
+.bracketSlotChipActive {
+  background: rgba(255,255,255,0.25);
+  border-color: rgba(255,255,255,0.5);
+  box-shadow: 0 0 8px rgba(255,255,255,0.2);
+}
+
+.bracketSlotChipDone {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.2);
+}
+
+.bracketSlotText {
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bracketSlotTextActive {
+  color: #fff;
+}
+
+/* ─── Complete ────────────────────────────────────────────────────────────── */
+.completeOverlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+  padding: 40px 24px;
+}
+
+.completeTitle {
+  font-size: var(--text-3xl);
+  font-weight: 900;
+  color: #fff;
+}
+
+.completeWinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.completeAlbum {
+  width: 120px;
+  height: 120px;
+  border-radius: var(--radius-xl);
+  object-fit: cover;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.completeSongName {
+  font-size: var(--text-xl);
+  font-weight: 800;
+  color: #fff;
+}
+
+.completeArtist {
+  font-size: var(--text-sm);
+  color: rgba(255,255,255,0.6);
+}
+
+.completeBtn {
+  background: #fff;
+  color: #000;
+  font-size: var(--text-base);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 16px 40px;
+  border-radius: var(--radius-2xl);
+  border: none;
+  cursor: pointer;
+  transition: transform 200ms ease-out;
+  margin-top: 8px;
+}
+
+.completeBtn:hover { transform: scale(1.05); }
+.completeBtn:active { transform: scale(0.96); }
