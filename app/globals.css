@@ -13,7 +13,7 @@ html {
 body {
   height: 100%;
   min-height: 100dvh;
-  background: #000;
+  background: transparent;
   color: #fff;
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;

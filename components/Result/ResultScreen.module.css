@@ -3,6 +3,8 @@
   width: 100%;
   background: linear-gradient(160deg, #c026d3 0%, #7e22ce 100%);
   overflow-y: auto;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .container::-webkit-scrollbar {

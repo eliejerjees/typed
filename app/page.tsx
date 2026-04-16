@@ -29,6 +29,19 @@ import TopShowsStep from "@/components/steps/TopShows/TopShowsStep";
 const LS_KEY = "typed_session_v2";
 const LS_STEP_KEY = "typed_step_v2";
 
+const STEP_BG: Record<AppStep, string> = {
+  "landing":      "#c026d3",
+  "music-genres": "#7c3aed",
+  "top-artists":  "#e11d48",
+  "song-bracket": "#1d4ed8",
+  "movie-genres": "#059669",
+  "actor-game":   "#0f172a",
+  "movie-koth":   "#4338ca",
+  "top-shows":    "#d97706",
+  "processing":   "#c026d3",
+  "result":       "#7e22ce",
+};
+
 
 export default function Home() {
   const [step, setStep] = useState<AppStep>("landing");
@@ -41,6 +54,17 @@ export default function Home() {
   useEffect(() => {
     try { setHasProgress(!!localStorage.getItem(LS_KEY)); } catch { /* ignore */ }
   }, []);
+
+  // Keep html + body background in sync so safe-area / overscroll matches the step colour
+  useEffect(() => {
+    setBg(step);
+  }, [step]);
+
+  function setBg(s: AppStep) {
+    const color = STEP_BG[s];
+    document.documentElement.style.background = color;
+    document.body.style.background = color;
+  }
 
   function saveToStorage(s: AppStep, d: AppData) {
     try {
@@ -66,6 +90,7 @@ export default function Home() {
   }
 
   function go(nextStep: AppStep) {
+    setBg(nextStep);
     setStep(nextStep);
     saveToStorage(nextStep, appData);
   }
@@ -77,7 +102,7 @@ export default function Home() {
       saveToStorage(s, next);
       return next;
     });
-    if (nextStep) setStep(nextStep);
+    if (nextStep) { setBg(nextStep); setStep(nextStep); }
   }
 
   // ── Song pool ────────────────────────────────────────────────────────────────
@@ -176,6 +201,7 @@ export default function Home() {
     const nextData: AppData = { ...appData, topShows: shows };
     setAppData(nextData);
     saveToStorage("processing", nextData);
+    setBg("processing");
     setStep("processing");
     generateResult(nextData);
   }
@@ -183,6 +209,7 @@ export default function Home() {
   function handleRetake() {
     clearStorage();
     setAppData(DEFAULT_APP_DATA);
+    setBg("landing");
     setStep("landing");
   }
 
