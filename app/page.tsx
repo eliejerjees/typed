@@ -137,7 +137,7 @@ export default function Home() {
   function handleStart() {
     clearStorage();
     setAppData(DEFAULT_APP_DATA);
-    go("music-genres", "forward");
+    go("music-genres");
   }
 
   function handleRestore() {
