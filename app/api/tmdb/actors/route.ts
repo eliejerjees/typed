@@ -88,13 +88,13 @@ export async function POST(req: NextRequest) {
               `/movie/${movie.id}/credits`
             )) as { cast: TMDBCastMember[] };
 
-            // Top-billed cast only (order 0–7), acting department
+            // Top-billed cast only (order 0–3 = main stars), acting department
             castData.cast
               .filter(
                 (a) =>
                   a.profile_path &&
                   !allExcluded.has(a.id) &&
-                  (a.order ?? 99) < 8 &&
+                  (a.order ?? 99) < 4 &&
                   (a.known_for_department === "Acting" || !a.known_for_department)
               )
               .forEach((a) =>
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
             )) as { cast: TMDBCastMember[] };
 
             castData.cast
-              .filter((a) => a.profile_path && !allExcluded.has(a.id) && (a.order ?? 99) < 6)
+              .filter((a) => a.profile_path && !allExcluded.has(a.id) && (a.order ?? 99) < 4)
               .forEach((a) =>
                 upsert(a.id, a.name, `${IMG_BASE}${a.profile_path}`, movie.title)
               );
@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
               )) as { cast: TMDBCastMember[] };
 
               castData.cast
-                .filter((a) => a.profile_path && !allExcluded.has(a.id) && (a.order ?? 99) < 6)
+                .filter((a) => a.profile_path && !allExcluded.has(a.id) && (a.order ?? 99) < 4)
                 .forEach((a) =>
                   upsert(a.id, a.name, `${IMG_BASE}${a.profile_path}`, movie.title)
                 );

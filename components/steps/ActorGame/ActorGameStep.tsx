@@ -8,7 +8,26 @@ import styles from "./ActorGameStep.module.css";
 
 const TOTAL_ROUNDS = 5;
 const ACTORS_PER_ROUND = 3;
-const POOL_FETCH_SIZE = 20;
+const POOL_FETCH_SIZE = 22;
+
+const BUCKET_COLOR: Record<ActorBucket, string> = {
+  keep:  "#4ade80",
+  bench: "#facc15",
+  cut:   "#f87171",
+};
+const BUCKET_BG: Record<ActorBucket, string> = {
+  keep:  "rgba(74,222,128,0.15)",
+  bench: "rgba(250,204,21,0.15)",
+  cut:   "rgba(248,113,113,0.15)",
+};
+const BUCKET_BORDER: Record<ActorBucket, string> = {
+  keep:  "rgba(74,222,128,0.55)",
+  bench: "rgba(250,204,21,0.55)",
+  cut:   "rgba(248,113,113,0.55)",
+};
+const BUCKET_LABEL: Record<ActorBucket, string> = {
+  keep: "Keep", bench: "Bench", cut: "Cut",
+};
 
 interface Props {
   movieGenreIds: number[];
@@ -17,46 +36,64 @@ interface Props {
 
 export default function ActorGameStep({ movieGenreIds, onComplete }: Props) {
   const [gameState, setGameState] = useState<ActorGameState>({
-    rounds: [],
-    currentRound: 0,
-    kept: [],
-    benched: [],
-    cut: [],
+    rounds: [], currentRound: 0, kept: [], benched: [], cut: [],
   });
-
-  // Full fetched pool for this round; first 3 shown, rest are replacements
-  const [actorPool, setActorPool] = useState<Actor[]>([]);
-  const [poolIndex, setPoolIndex] = useState(ACTORS_PER_ROUND);
+  const [actorPool, setActorPool]   = useState<Actor[]>([]);
+  const [poolIndex, setPoolIndex]   = useState(ACTORS_PER_ROUND);
   const [currentActors, setCurrentActors] = useState<Actor[]>([]);
-
-  // actorId → bucket (only one actor per bucket at a time)
-  const [assignments, setAssignments] = useState<Record<number, ActorBucket>>({});
-  const [activeActor, setActiveActor] = useState<number | null>(null);
-
-  const [loading, setLoading] = useState(true);
+  const [assignments, setAssignments]     = useState<Record<number, ActorBucket>>({});
+  const [loading, setLoading]       = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [advancing, setAdvancing] = useState(false);
+  const [advancing, setAdvancing]   = useState(false);
+  const [draggingId, setDraggingId] = useState<number | null>(null);
+  const [hoveredBucket, setHoveredBucket] = useState<ActorBucket | null>(null);
 
-  const allUsedIds = useRef(new Set<number>());
-  // Store latest gameState in a ref so advanceRound doesn't close over stale state
+  const allUsedIds  = useRef(new Set<number>());
   const gameStateRef = useRef(gameState);
   useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
 
-  const fetchPool = useCallback(async (
-    round: number,
-    kept: Actor[],
-    cut: Actor[]
-  ) => {
+  const keepRef  = useRef<HTMLDivElement>(null);
+  const benchRef = useRef<HTMLDivElement>(null);
+  const cutRef   = useRef<HTMLDivElement>(null);
+
+  function getBucketAtPoint(clientX: number, clientY: number): ActorBucket | null {
+    const zones: [ActorBucket, React.RefObject<HTMLDivElement | null>][] = [
+      ["keep", keepRef], ["bench", benchRef], ["cut", cutRef],
+    ];
+    for (const [bucket, ref] of zones) {
+      if (!ref.current) continue;
+      const r = ref.current.getBoundingClientRect();
+      // Generous padding so dropping anywhere near the bucket registers
+      if (clientX >= r.left - 20 && clientX <= r.right + 20 &&
+          clientY >= r.top  - 60 && clientY <= r.bottom + 20) {
+        return bucket;
+      }
+    }
+    return null;
+  }
+
+  // Extract reliable viewport coordinates from the native drag event
+  function clientCoordsFromEvent(event: MouseEvent | TouchEvent | PointerEvent): { x: number; y: number } {
+    if ("changedTouches" in event && event.changedTouches.length > 0) {
+      return { x: event.changedTouches[0].clientX, y: event.changedTouches[0].clientY };
+    }
+    if ("clientX" in event) {
+      return { x: event.clientX, y: event.clientY };
+    }
+    return { x: 0, y: 0 };
+  }
+
+  const fetchPool = useCallback(async (round: number, kept: Actor[], cut: Actor[]) => {
+    setLoadingMore(true);
     try {
       const res = await fetch("/api/tmdb/actors", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          movieGenreIds,
-          round,
+          movieGenreIds, round,
           keptActorIds: kept.map((a) => a.id),
-          cutActorIds: cut.map((a) => a.id),
-          excludeIds: Array.from(allUsedIds.current),
+          cutActorIds:  cut.map((a) => a.id),
+          excludeIds:   Array.from(allUsedIds.current),
         }),
       });
       const data = await res.json();
@@ -65,12 +102,10 @@ export default function ActorGameStep({ movieGenreIds, onComplete }: Props) {
         .slice(0, POOL_FETCH_SIZE);
 
       actors.forEach((a) => allUsedIds.current.add(a.id));
-
       setActorPool(actors);
       setCurrentActors(actors.slice(0, ACTORS_PER_ROUND));
       setPoolIndex(ACTORS_PER_ROUND);
       setAssignments({});
-      setActiveActor(null);
       setAdvancing(false);
     } catch {
       setCurrentActors([]);
@@ -80,255 +115,159 @@ export default function ActorGameStep({ movieGenreIds, onComplete }: Props) {
     }
   }, [movieGenreIds]);
 
-  useEffect(() => {
-    fetchPool(0, [], []);
-  }, [fetchPool]);
+  useEffect(() => { fetchPool(0, [], []); }, [fetchPool]);
 
-  // ── Assign a bucket, enforcing one-per-bucket ─────────────────────────────
   function assign(actorId: number, bucket: ActorBucket, actors: Actor[]) {
     const next: Record<number, ActorBucket> = { ...assignments };
-
-    // Unassign whoever currently holds this bucket
     for (const [id, b] of Object.entries(next)) {
-      if (b === bucket && Number(id) !== actorId) {
-        delete next[Number(id)];
-      }
+      if (b === bucket && Number(id) !== actorId) delete next[Number(id)];
     }
     next[actorId] = bucket;
     setAssignments(next);
-    setActiveActor(null);
-
-    // Auto-advance if all 3 now have distinct buckets
-    const allDone = actors.every((a) => next[a.id] != null);
-    if (allDone) {
+    if (actors.every((a) => next[a.id] != null)) {
       setAdvancing(true);
-      setTimeout(() => advanceRound(next, actors), 500);
+      setTimeout(() => advanceRound(next, actors), 700);
     }
   }
 
-  // ── "Don't know" → swap actor out for next in pool ───────────────────────
   function handleDontKnow(actorId: number) {
-    setActiveActor(null);
-
-    // Remove any assignment for this actor
-    setAssignments((prev) => {
-      const next = { ...prev };
-      delete next[actorId];
-      return next;
-    });
-
+    setAssignments((prev) => { const n = { ...prev }; delete n[actorId]; return n; });
     if (poolIndex < actorPool.length) {
-      const replacement = actorPool[poolIndex];
-      const newActors = currentActors.map((a) => (a.id === actorId ? replacement : a));
-      setCurrentActors(newActors);
+      setCurrentActors((prev) => prev.map((a) => a.id === actorId ? actorPool[poolIndex] : a));
       setPoolIndex((i) => i + 1);
     }
-    // else pool exhausted — actor just stays and user must assign them
   }
 
-  // ── Advance to next round ─────────────────────────────────────────────────
-  function advanceRound(
-    finalAssignments: Record<number, ActorBucket>,
-    actors: Actor[]
-  ) {
+  function advanceRound(finals: Record<number, ActorBucket>, actors: Actor[]) {
     const gs = gameStateRef.current;
-
-    const newKept: Actor[] = [];
-    const newBenched: Actor[] = [];
-    const newCut: Actor[] = [];
-
-    for (const actor of actors) {
-      const bucket = finalAssignments[actor.id];
-      if (bucket === "keep") newKept.push(actor);
-      else if (bucket === "bench") newBenched.push(actor);
-      else if (bucket === "cut") newCut.push(actor);
+    const newKept: Actor[] = [], newBenched: Actor[] = [], newCut: Actor[] = [];
+    for (const a of actors) {
+      const b = finals[a.id];
+      if (b === "keep") newKept.push(a);
+      else if (b === "bench") newBenched.push(a);
+      else if (b === "cut") newCut.push(a);
     }
-
     const nextRound = gs.currentRound + 1;
-
-    const updatedState: ActorGameState = {
-      rounds: [
-        ...gs.rounds,
-        {
-          actors,
-          assignments: actors.map((a) => ({
-            actor: a,
-            bucket: finalAssignments[a.id]!,
-          })),
-        },
-      ],
+    const updated: ActorGameState = {
+      rounds: [...gs.rounds, { actors, assignments: actors.map((a) => ({ actor: a, bucket: finals[a.id]! })) }],
       currentRound: nextRound,
-      kept: [...gs.kept, ...newKept],
+      kept:    [...gs.kept,    ...newKept],
       benched: [...gs.benched, ...newBenched],
-      cut: [...gs.cut, ...newCut],
+      cut:     [...gs.cut,     ...newCut],
     };
-
-    setGameState(updatedState);
-
+    setGameState(updated);
     if (nextRound >= TOTAL_ROUNDS) {
-      onComplete(updatedState);
+      onComplete(updated);
     } else {
       setLoadingMore(true);
-      fetchPool(nextRound, updatedState.kept, updatedState.cut);
+      fetchPool(nextRound, updated.kept, updated.cut);
     }
   }
-
-  // ── What buckets are already used this round ──────────────────────────────
-  const usedBuckets = new Set(
-    currentActors
-      .map((a) => assignments[a.id])
-      .filter((b): b is ActorBucket => b != null)
-  );
 
   if (loading) {
     return (
       <div className={styles.loading}>
         <p className={styles.loadingTitle}>Loading actors…</p>
         <div className={styles.loadingDots}>
-          {[0, 1, 2].map((i) => (
-            <div key={i} className={styles.loadingDot} />
-          ))}
+          {[0,1,2].map((i) => <div key={i} className={styles.loadingDot} />)}
         </div>
       </div>
     );
   }
+
+  const assignedCount = currentActors.filter((a) => assignments[a.id] != null).length;
 
   return (
     <div className={styles.container}>
       <ProgressBar current={5} total={7} />
 
       <div className={styles.inner}>
-        {/* Header */}
-        <motion.div
-          className={styles.header}
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
+        <motion.div className={styles.header} initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}>
           <p className={styles.eyebrow}>Step 5 of 7 — Movies</p>
           <h2 className={styles.heading}>Keep, Bench, or Cut</h2>
-          <p className={styles.sub}>
-            One actor per bucket — assign each a different fate.
-            Don&apos;t recognize someone? Swap them out.
-          </p>
+          <p className={styles.sub}>Drag each actor into a bucket. Drag to a different bucket to reassign.</p>
         </motion.div>
 
-        <p className={styles.roundInfo}>
-          Round {gameState.currentRound + 1} of {TOTAL_ROUNDS}
-        </p>
-
-        <div className={styles.instructions}>
-          <span className={styles.instrItem}>Keep: you like them</span>
-          <span className={styles.instrItem}>Bench: neutral</span>
-          <span className={styles.instrItem}>Cut: not your vibe</span>
+        <div className={styles.roundRow}>
+          <span className={styles.roundPill}>Round {gameState.currentRound + 1} / {TOTAL_ROUNDS}</span>
+          {!advancing && !loadingMore && assignedCount > 0 && (
+            <span className={styles.progressPill}>
+              {assignedCount === 3 ? "Submitting…" : `${assignedCount} / 3 assigned`}
+            </span>
+          )}
         </div>
 
-        {/* Actor cards */}
+        {/* ── Actor cards ── */}
         <AnimatePresence mode="wait">
           {!loadingMore && (
             <motion.div
               key={gameState.currentRound}
               className={styles.actorsRow}
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 28 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -16 }}
+              exit={{ opacity: 0, y: -28 }}
               transition={{ duration: 0.3 }}
             >
               {currentActors.map((actor) => {
-                const assignedBucket = assignments[actor.id] ?? null;
-                const isAssigned = assignedBucket !== null;
-                const isActive = activeActor === actor.id;
+                const bucket = assignments[actor.id] ?? null;
+                const isDragging = draggingId === actor.id;
 
                 return (
-                  <div
-                    key={actor.id}
-                    style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}
-                  >
+                  <div key={actor.id} className={styles.actorSlot}>
                     <motion.div
-                      className={`${styles.actorCard} ${
-                        activeActor !== null && !isActive
-                          ? styles.actorCardSelecting
-                          : styles.actorCardActive
-                      }`}
+                      className={styles.actorCard}
                       style={{
-                        outline: isAssigned
-                          ? assignedBucket === "keep"
-                            ? "2px solid rgba(74,222,128,0.7)"
-                            : assignedBucket === "cut"
-                            ? "2px solid rgba(252,165,165,0.7)"
-                            : "2px solid rgba(255,255,255,0.4)"
-                          : "none",
+                        borderColor: bucket ? BUCKET_BORDER[bucket] : "rgba(255,255,255,0.15)",
+                        background: bucket ? BUCKET_BG[bucket] : "rgba(255,255,255,0.09)",
+                        cursor: advancing ? "default" : isDragging ? "grabbing" : "grab",
                       }}
-                      onClick={() => {
-                        if (!advancing) setActiveActor(isActive ? null : actor.id);
+                      drag={!advancing}
+                      dragSnapToOrigin
+                      dragElastic={0.1}
+                      dragTransition={{ bounceStiffness: 500, bounceDamping: 38 }}
+                      onDragStart={() => setDraggingId(actor.id)}
+                      onDrag={(event) => {
+                        const { x, y } = clientCoordsFromEvent(event as MouseEvent | TouchEvent | PointerEvent);
+                        setHoveredBucket(getBucketAtPoint(x, y));
                       }}
-                      whileTap={{ scale: 0.96 }}
-                      animate={{
-                        scale: isActive ? 1.05 : 1,
-                        boxShadow: isActive ? "0 0 0 3px rgba(255,255,255,0.5)" : "none",
+                      onDragEnd={(event) => {
+                        const { x, y } = clientCoordsFromEvent(event as MouseEvent | TouchEvent | PointerEvent);
+                        const dropped = getBucketAtPoint(x, y);
+                        if (dropped) assign(actor.id, dropped, currentActors);
+                        setDraggingId(null);
+                        setHoveredBucket(null);
                       }}
+                      whileDrag={{ scale: 1.06, zIndex: 100, boxShadow: "0 28px 64px rgba(0,0,0,0.5)" }}
+                      animate={{ opacity: advancing ? 0.5 : 1 }}
                     >
-                      {actor.imageUrl ? (
-                        <img
-                          src={actor.imageUrl}
-                          alt={actor.name}
-                          className={styles.actorImage}
-                        />
-                      ) : (
-                        <div className={styles.actorImagePlaceholder}>🎬</div>
+                      {bucket && (
+                        <div className={styles.assignedBadge} style={{ color: BUCKET_COLOR[bucket], background: BUCKET_BG[bucket] }}>
+                          {BUCKET_LABEL[bucket]}
+                        </div>
                       )}
-                      <p className={styles.actorName}>{actor.name}</p>
 
-                      {/* Assigned badge */}
-                      {isAssigned && (
-                        <span style={{ fontSize: 16, position: "absolute" }}>
-                          {assignedBucket === "keep" ? "Keep" : assignedBucket === "cut" ? "Cut" : "Bench"}
-                        </span>
-                      )}
+                      {actor.imageUrl
+                        ? <img src={actor.imageUrl} alt={actor.name} className={styles.actorPhoto} draggable={false} />
+                        : <div className={styles.actorPhotoPlaceholder}>🎬</div>
+                      }
+
+                      <div className={styles.actorInfo}>
+                        <p className={styles.actorName}>{actor.name}</p>
+                        {actor.knownFor.length > 0 && (
+                          <ul className={styles.filmList}>
+                            {actor.knownFor.slice(0, 3).map((f, i) => (
+                              <li key={i} className={styles.filmItem}>{f}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
                     </motion.div>
 
-                    {/* Don't know — swaps actor out */}
                     {!advancing && (
-                      <button
-                        className={styles.dontKnow}
-                        onClick={(e) => { e.stopPropagation(); handleDontKnow(actor.id); }}
-                      >
+                      <button className={styles.dontKnow} onClick={() => handleDontKnow(actor.id)}>
                         don&apos;t know
                       </button>
                     )}
-
-                    {/* Assign buttons — only show available buckets */}
-                    <AnimatePresence>
-                      {isActive && !advancing && (
-                        <motion.div
-                          className={styles.assignButtons}
-                          initial={{ opacity: 0, y: -8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -8 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          {(["keep", "bench", "cut"] as ActorBucket[]).map((b) => {
-                            const taken = usedBuckets.has(b) && assignments[actor.id] !== b;
-                            return (
-                              <button
-                                key={b}
-                                className={`${styles.assignBtn} ${
-                                  b === "keep"
-                                    ? styles.assignBtnKeep
-                                    : b === "cut"
-                                    ? styles.assignBtnCut
-                                    : styles.assignBtnBench
-                                }`}
-                                style={{ opacity: taken ? 0.3 : 1, cursor: taken ? "not-allowed" : "pointer" }}
-                                disabled={taken}
-                                onClick={() => assign(actor.id, b, currentActors)}
-                              >
-                                {b === "keep" ? "Keep" : b === "bench" ? "Bench" : "Cut"}
-                              </button>
-                            );
-                          })}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </div>
                 );
               })}
@@ -336,54 +275,54 @@ export default function ActorGameStep({ movieGenreIds, onComplete }: Props) {
           )}
         </AnimatePresence>
 
-        {(loadingMore || advancing) && (
-          <div style={{ textAlign: "center", color: "rgba(255,255,255,0.5)", fontSize: "var(--text-sm)" }}>
-            {advancing ? "Moving on…" : "Loading next round…"}
+        {loadingMore && (
+          <div className={styles.loadingNext}>
+            <div className={styles.loadingDots}>
+              {[0,1,2].map((i) => <div key={i} className={styles.loadingDot} />)}
+            </div>
           </div>
         )}
 
-        {/* Buckets summary (previous rounds only) */}
-        <div className={styles.bucketsRow}>
-          {(["keep", "bench", "cut"] as ActorBucket[]).map((bucket) => {
-            const actors =
-              bucket === "keep"
-                ? gameState.kept
-                : bucket === "bench"
-                ? gameState.benched
-                : gameState.cut;
+        {/* ── Drop zones ── */}
+        {!loadingMore && (
+          <div className={styles.dropZones}>
+            {(["keep", "bench", "cut"] as ActorBucket[]).map((bucket) => {
+              const ref   = bucket === "keep" ? keepRef : bucket === "bench" ? benchRef : cutRef;
+              const isHot = hoveredBucket === bucket && draggingId !== null;
+              const filled = currentActors.find((a) => assignments[a.id] === bucket);
+              const prevCount = (bucket === "keep" ? gameState.kept : bucket === "bench" ? gameState.benched : gameState.cut).length;
 
-            return (
-              <div
-                key={bucket}
-                className={`${styles.bucket} ${
-                  bucket === "keep"
-                    ? styles.bucketKeep
-                    : bucket === "cut"
-                    ? styles.bucketCut
-                    : ""
-                }`}
-              >
-                <p className={styles.bucketLabel}>
-                  {bucket === "keep" ? "Keep" : bucket === "bench" ? "Bench" : "Cut"}
-                </p>
-                <div className={styles.bucketActors}>
-                  {actors.length === 0 ? (
-                    <p className={styles.bucketEmptyHint}>—</p>
+              return (
+                <motion.div
+                  key={bucket}
+                  ref={ref}
+                  className={styles.dropZone}
+                  animate={{
+                    scale: isHot ? 1.04 : 1,
+                    borderColor: isHot ? BUCKET_COLOR[bucket] : filled ? BUCKET_BORDER[bucket] : "rgba(255,255,255,0.13)",
+                    background:  isHot ? BUCKET_BG[bucket]    : filled ? `${BUCKET_BG[bucket]}` : "rgba(0,0,0,0.14)",
+                  }}
+                  transition={{ duration: 0.1 }}
+                >
+                  <p className={styles.dropZoneLabel} style={{ color: isHot || filled ? BUCKET_COLOR[bucket] : "rgba(255,255,255,0.4)" }}>
+                    {BUCKET_LABEL[bucket]}
+                  </p>
+
+                  {filled ? (
+                    <div className={styles.dropZoneFilled}>
+                      {filled.imageUrl && <img src={filled.imageUrl} alt={filled.name} className={styles.dropZoneAvatar} />}
+                      <span className={styles.dropZoneName}>{filled.name.split(" ")[0]}</span>
+                    </div>
                   ) : (
-                    actors.map((a) => (
-                      <div key={a.id} className={styles.bucketActorChip}>
-                        {a.imageUrl && (
-                          <img src={a.imageUrl} alt={a.name} className={styles.bucketActorImg} />
-                        )}
-                        <span>{a.name.split(" ")[0]}</span>
-                      </div>
-                    ))
+                    <p className={styles.dropZoneHint}>{isHot ? "drop!" : "drag here"}</p>
                   )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+
+                  {prevCount > 0 && <p className={styles.prevCount}>+{prevCount} prev</p>}
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

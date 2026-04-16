@@ -29,14 +29,6 @@ import TopShowsStep from "@/components/steps/TopShows/TopShowsStep";
 const LS_KEY = "typed_session_v2";
 const LS_STEP_KEY = "typed_step_v2";
 
-// ─── Page transition variants ─────────────────────────────────────────────────
-const pageVariants = {
-  initial: { opacity: 0, y: 16, scale: 0.99 },
-  animate: { opacity: 1, y: 0, scale: 1 },
-  exit: { opacity: 0, y: -16, scale: 1.01 },
-};
-
-const pageTransition = { duration: 0.38, ease: "easeInOut" as const };
 
 export default function Home() {
   const [step, setStep] = useState<AppStep>("landing");
@@ -46,11 +38,8 @@ export default function Home() {
   const [hasProgress, setHasProgress] = useState(false);
   const mountedRef = useRef(true);
 
-  // ── Detect saved progress client-side only (avoids hydration mismatch) ────
   useEffect(() => {
-    try {
-      setHasProgress(!!localStorage.getItem(LS_KEY));
-    } catch { /* ignore */ }
+    try { setHasProgress(!!localStorage.getItem(LS_KEY)); } catch { /* ignore */ }
   }, []);
 
   function saveToStorage(s: AppStep, d: AppData) {
@@ -73,12 +62,14 @@ export default function Home() {
       const savedStep = localStorage.getItem(LS_STEP_KEY) as AppStep | null;
       if (!raw || !savedStep) return null;
       return { step: savedStep, data: JSON.parse(raw) as AppData };
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
+  function go(nextStep: AppStep) {
+    setStep(nextStep);
+    saveToStorage(nextStep, appData);
+  }
+
   function update(partial: Partial<AppData>, nextStep?: AppStep) {
     setAppData((prev) => {
       const next = { ...prev, ...partial };
@@ -89,30 +80,18 @@ export default function Home() {
     if (nextStep) setStep(nextStep);
   }
 
-  function go(nextStep: AppStep) {
-    setStep(nextStep);
-    saveToStorage(nextStep, appData);
-  }
-
-  // ── Fetch song pool then start bracket (Last.fm) ─────────────────────────
-  async function fetchSongPoolAndGo(
-    artists: Artist[],
-    genres: string[]
-  ) {
+  // ── Song pool ────────────────────────────────────────────────────────────────
+  async function fetchSongPoolAndGo(artists: Artist[], genres: string[]) {
     setIsFetchingPool(true);
     setFetchError(null);
     try {
       const res = await fetch("/api/music/pool", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          artistNames: artists.map((a) => a.name),
-          genres,
-        }),
+        body: JSON.stringify({ artistNames: artists.map((a) => a.name), genres }),
       });
       const data = await res.json();
       const songs: Song[] = data.songs ?? [];
-      // Merge tag data returned from pool into stored artists
       const enrichedArtists: Artist[] = data.enrichedArtists ?? artists;
 
       if (songs.length < 16) {
@@ -122,10 +101,7 @@ export default function Home() {
       }
 
       const bracket = buildInitialBracket(songs);
-      update(
-        { songPool: songs, bracketState: bracket, topArtists: enrichedArtists },
-        "song-bracket"
-      );
+      update({ songPool: songs, bracketState: bracket, topArtists: enrichedArtists }, "song-bracket");
     } catch {
       setFetchError("Failed to load songs. Check your connection.");
     } finally {
@@ -133,7 +109,7 @@ export default function Home() {
     }
   }
 
-  // ── Generate final result ─────────────────────────────────────────────────
+  // ── Result generation ────────────────────────────────────────────────────────
   async function generateResult(data: AppData) {
     try {
       const res = await fetch("/api/result", {
@@ -143,16 +119,12 @@ export default function Home() {
       });
       const json = await res.json();
       const result: TypedResult = json.result;
-
       if (mountedRef.current) {
         update({ finalResult: result }, "result");
-        clearStorage(); // Clear session after result
+        clearStorage();
       }
     } catch {
-      // The API route has a fallback — should not reach here
-      if (mountedRef.current) {
-        go("result");
-      }
+      if (mountedRef.current) go("result");
     }
   }
 
@@ -161,12 +133,11 @@ export default function Home() {
     return () => { mountedRef.current = false; };
   }, []);
 
-  // ─── Handlers ──────────────────────────────────────────────────────────────
-
+  // ── Step handlers ─────────────────────────────────────────────────────────────
   function handleStart() {
     clearStorage();
     setAppData(DEFAULT_APP_DATA);
-    go("music-genres");
+    go("music-genres", "forward");
   }
 
   function handleRestore() {
@@ -215,17 +186,23 @@ export default function Home() {
     setStep("landing");
   }
 
-  // ─── Render ─────────────────────────────────────────────────────────────────
+  const variants = {
+    initial: { opacity: 0, y: 24, scale: 0.99 },
+    animate: { opacity: 1, y: 0, scale: 1 },
+    exit:    { opacity: 0, y: -24, scale: 1.01 },
+  };
+
+  // ── Render ────────────────────────────────────────────────────────────────────
   return (
-    <main style={{ minHeight: "100vh" }}>
+    <main style={{ minHeight: "100vh", position: "relative" }}>
       <AnimatePresence mode="wait">
         <motion.div
           key={step}
-          variants={pageVariants}
+          variants={variants}
           initial="initial"
           animate="animate"
           exit="exit"
-          transition={pageTransition}
+          transition={{ duration: 0.35, ease: "easeInOut" }}
         >
           {step === "landing" && (
             <LandingScreen
@@ -241,43 +218,23 @@ export default function Home() {
 
           {step === "top-artists" && (
             <div>
-              <TopArtistsStep
-                onNext={handleTopArtists}
-                initialArtists={appData.topArtists}
-              />
+              <TopArtistsStep onNext={handleTopArtists} initialArtists={appData.topArtists} />
               {isFetchingPool && (
                 <div style={{
-                  position: "fixed",
-                  inset: 0,
-                  background: "rgba(0,0,0,0.6)",
-                  backdropFilter: "blur(8px)",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 16,
-                  zIndex: 200,
+                  position: "fixed", inset: 0,
+                  background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)",
+                  display: "flex", flexDirection: "column",
+                  alignItems: "center", justifyContent: "center", gap: 16, zIndex: 200,
                 }}>
-                  <p style={{ color: "#fff", fontWeight: 900, fontSize: "1.5rem" }}>
-                    Building your bracket…
-                  </p>
-                  <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.875rem" }}>
-                    fetching songs from Spotify
-                  </p>
+                  <p style={{ color: "#fff", fontWeight: 900, fontSize: "1.5rem" }}>Building your bracket…</p>
+                  <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.875rem" }}>Fetching songs…</p>
                 </div>
               )}
               {fetchError && (
                 <div style={{
-                  position: "fixed",
-                  bottom: 32,
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  background: "#ef4444",
-                  color: "#fff",
-                  padding: "12px 24px",
-                  borderRadius: 12,
-                  fontWeight: 700,
-                  zIndex: 200,
+                  position: "fixed", bottom: 32, left: "50%", transform: "translateX(-50%)",
+                  background: "#ef4444", color: "#fff", padding: "12px 24px",
+                  borderRadius: 12, fontWeight: 700, zIndex: 200,
                 }}>
                   {fetchError}
                 </div>
@@ -286,10 +243,7 @@ export default function Home() {
           )}
 
           {step === "song-bracket" && appData.bracketState && (
-            <SongBracketStep
-              bracket={appData.bracketState}
-              onComplete={handleBracketComplete}
-            />
+            <SongBracketStep bracket={appData.bracketState} onComplete={handleBracketComplete} />
           )}
 
           {step === "movie-genres" && (
@@ -318,10 +272,7 @@ export default function Home() {
           {step === "processing" && <ProcessingScreen />}
 
           {step === "result" && appData.finalResult && (
-            <ResultScreen
-              result={appData.finalResult}
-              onRetake={handleRetake}
-            />
+            <ResultScreen result={appData.finalResult} onRetake={handleRetake} />
           )}
         </motion.div>
       </AnimatePresence>

@@ -91,7 +91,7 @@ export default function TopArtistsStep({ onNext, initialArtists = [] }: Props) {
           <AnimatePresence>
             {selected.map((artist, i) => (
               <motion.div
-                key={artist.name}
+                key={`${artist.name}-${i}`}
                 className={styles.artistCard}
                 initial={{ opacity: 0, x: -16 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -164,9 +164,9 @@ export default function TopArtistsStep({ onNext, initialArtists = [] }: Props) {
                   {searching && (
                     <p className={styles.searchingText}>Searching…</p>
                   )}
-                  {suggestions.map((a) => (
+                  {suggestions.map((a, i) => (
                     <div
-                      key={a.name}
+                      key={`${a.name}-${i}`}
                       className={styles.suggestion}
                       onClick={() => addArtist(a)}
                     >

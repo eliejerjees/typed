@@ -8,19 +8,6 @@
   overflow: hidden;
 }
 
-.container::after {
-  content: "";
-  position: absolute;
-  top: -10%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80vw;
-  height: 80vw;
-  max-width: 700px;
-  max-height: 700px;
-  background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
-  pointer-events: none;
-}
 
 /* ─── Loading ─────────────────────────────────────────────────────────────── */
 .loading {
