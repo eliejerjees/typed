@@ -1,5 +1,5 @@
 .container {
-  min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
   background-color: #1d4ed8;
   display: flex;
@@ -11,7 +11,7 @@
 
 /* ─── Loading ─────────────────────────────────────────────────────────────── */
 .loading {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;

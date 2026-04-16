@@ -1,6 +1,6 @@
 /* ─── Page ────────────────────────────────────────────────────────────────── */
 .container {
-  min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
   background: #0f172a;
   background-image:
@@ -17,7 +17,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  min-height: 100dvh;
   gap: 18px;
   background: #0f172a;
 }
