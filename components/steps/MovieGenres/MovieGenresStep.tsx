@@ -60,8 +60,8 @@ export default function MovieGenresStep({ onNext }: Props) {
         transition={{ duration: 0.5 }}
       >
         <div className={styles.header}>
-          <p className={styles.eyebrow}>Step 4 of 7 — Movies</p>
-          <h2 className={styles.heading}>Pick your movie genres</h2>
+          <p className={styles.eyebrow}>Step 4 of 7 — Visual Taste</p>
+          <h2 className={styles.heading}>Pick your genres</h2>
           <p className={styles.sub}>
             Choose up to 3. The genres you actually seek out, not the ones that
             seem impressive.

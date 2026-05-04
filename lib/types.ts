@@ -5,50 +5,40 @@ export type AppStep =
   | "music-genres"
   | "top-artists"
   | "song-bracket"
+  | "media-preference"
   | "movie-genres"
-  | "actor-game"
-  | "movie-koth"
-  | "top-shows"
+  | "actor-koth"
+  | "movie-kbc"
+  | "show-kbc"
   | "processing"
   | "result";
 
-export const STEP_ORDER: AppStep[] = [
-  "landing",
-  "music-genres",
-  "top-artists",
-  "song-bracket",
-  "movie-genres",
-  "actor-game",
-  "movie-koth",
-  "top-shows",
-  "processing",
-  "result",
-];
+export type MediaPreference = "movies" | "shows" | "both";
 
 export const STEP_COLORS: Record<AppStep, string> = {
-  landing: "#c026d3",
-  "music-genres": "#7c3aed",
-  "top-artists": "#e11d48",
-  "song-bracket": "#1d4ed8",
-  "movie-genres": "#059669",
-  "actor-game": "#ea580c",
-  "movie-koth": "#4338ca",
-  "top-shows": "#d97706",
-  processing: "#7e22ce",
-  result: "#c026d3",
+  landing:            "#c026d3",
+  "music-genres":     "#7c3aed",
+  "top-artists":      "#e11d48",
+  "song-bracket":     "#1d4ed8",
+  "media-preference": "#0f172a",
+  "movie-genres":     "#059669",
+  "actor-koth":       "#312e81",
+  "movie-kbc":        "#14532d",
+  "show-kbc":         "#78350f",
+  processing:         "#7e22ce",
+  result:             "#c026d3",
 };
 
 // ─── Music Types ─────────────────────────────────────────────────────────────
 
 export interface Artist {
-  name: string;          // Primary identifier — Last.fm uses artist names
-  mbid?: string;         // Last.fm MBID (optional, not always present)
-  tags: string[];        // Last.fm tags = genres
+  name: string;
+  mbid?: string;
+  tags: string[];
   imageUrl?: string;
   listeners?: number;
 }
 
-// Kept for backwards compat in any code that still uses the old name
 export type SpotifyArtist = Artist;
 
 export interface Song {
@@ -74,17 +64,16 @@ export interface BracketSlot {
 }
 
 export interface BracketState {
-  seeds: Song[]; // 16 songs, indexed 0-15
-  // rounds[0] = R16 (8 matchups), [1] = QF (4), [2] = SF (2), [3] = Final (1)
+  seeds: Song[];
   rounds: BracketMatchup[][];
   currentRound: number;
   currentMatchup: number;
   winner: Song | null;
-  // Full history for signal computation
   allChoices: Array<{ winner: Song; loser: Song; round: number }>;
 }
 
-// ─── Movie Types ──────────────────────────────────────────────────────────────
+// ─── Movie / Show Types ───────────────────────────────────────────────────────
+// Shows reuse this shape — TMDB `name` is mapped to `title`
 
 export interface Movie {
   id: number;
@@ -104,39 +93,42 @@ export interface Actor {
   knownFor: string[];
 }
 
-export type ActorBucket = "keep" | "bench" | "cut";
+// ─── Actor King of the Hill ───────────────────────────────────────────────────
 
-export interface ActorAssignment {
-  actor: Actor;
-  bucket: ActorBucket;
+export interface ActorKOTHRound {
+  champion: Actor;
+  challenger: Actor;
+  winner: Actor;
 }
 
-export interface ActorRound {
-  actors: Actor[];
-  assignments: ActorAssignment[];
+export interface ActorKOTHState {
+  champion: Actor | null;
+  challengerQueue: Actor[];
+  round: number;
+  history: ActorKOTHRound[];
 }
 
-export interface ActorGameState {
-  rounds: ActorRound[];
-  currentRound: number; // 0-4
-  kept: Actor[];
-  benched: Actor[];
-  cut: Actor[];
+// ─── Media Keep / Bench / Cut ─────────────────────────────────────────────────
+// Used for both movies and shows
+
+export type MediaBucket = "keep" | "bench" | "cut";
+
+export interface MediaAssignment {
+  item: Movie;
+  bucket: MediaBucket;
 }
 
-// ─── King of the Hill Types ───────────────────────────────────────────────────
-
-export interface KOTHRound {
-  champion: Movie;
-  challenger: Movie;
-  winner: Movie;
+export interface MediaKBCRound {
+  items: Movie[];
+  assignments: MediaAssignment[];
 }
 
-export interface KOTHState {
-  champion: Movie | null;
-  challengerQueue: Movie[];
-  round: number; // 1-10
-  history: KOTHRound[];
+export interface MediaKBCState {
+  rounds: MediaKBCRound[];
+  currentRound: number;
+  kept: Movie[];
+  benched: Movie[];
+  cut: Movie[];
 }
 
 // ─── App Data (full session state) ────────────────────────────────────────────
@@ -146,24 +138,24 @@ export interface AppData {
   musicGenres: string[];
   musicSubgenres: Record<string, string[]>;
   topArtists: Artist[];
-
-  // Bracket
   songPool: Song[];
   bracketState: BracketState | null;
 
-  // Movie
+  // Media preference
+  mediaPreference: MediaPreference | null;
+
+  // Genres (inform both movie and show pools)
   movieGenres: string[];
   movieGenreIds: number[];
 
-  // Actor game
-  actorGameState: ActorGameState | null;
+  // Actor King of the Hill
+  actorKothState: ActorKOTHState | null;
 
-  // Movie KOTH
-  moviePool: Movie[];
-  kothState: KOTHState | null;
+  // Movie Keep / Bench / Cut
+  movieKbcState: MediaKBCState | null;
 
-  // Shows
-  topShows: string[];
+  // Show Keep / Bench / Cut
+  showKbcState: MediaKBCState | null;
 
   // Result
   finalResult: TypedResult | null;
@@ -175,12 +167,12 @@ export const DEFAULT_APP_DATA: AppData = {
   topArtists: [],
   songPool: [],
   bracketState: null,
+  mediaPreference: null,
   movieGenres: [],
   movieGenreIds: [],
-  actorGameState: null,
-  moviePool: [],
-  kothState: null,
-  topShows: [],
+  actorKothState: null,
+  movieKbcState: null,
+  showKbcState: null,
   finalResult: null,
 };
 
@@ -234,14 +226,6 @@ export interface TMDBGenresResponse {
   genres: Array<{ id: number; name: string }>;
 }
 
-export interface ActorPoolResponse {
-  actors: Actor[];
-}
-
-export interface MoviePoolResponse {
-  movies: Movie[];
-}
-
 export interface ResultResponse {
   result: TypedResult;
 }
@@ -254,7 +238,6 @@ export function buildInitialBracket(songs: Song[]): BracketState {
   }
   const seeds = songs.slice(0, 16);
 
-  // R16: 1v2, 3v4, 5v6, 7v8, 9v10, 11v12, 13v14, 15v16
   const r16: BracketMatchup[] = [];
   for (let i = 0; i < 16; i += 2) {
     r16.push({ songA: seeds[i], songB: seeds[i + 1], winner: null });
@@ -270,13 +253,9 @@ export function buildInitialBracket(songs: Song[]): BracketState {
   };
 }
 
-export function advanceBracket(
-  state: BracketState,
-  winner: Song
-): BracketState {
+export function advanceBracket(state: BracketState, winner: Song): BracketState {
   const loser =
-    state.rounds[state.currentRound][state.currentMatchup].songA.id ===
-    winner.id
+    state.rounds[state.currentRound][state.currentMatchup].songA.id === winner.id
       ? state.rounds[state.currentRound][state.currentMatchup].songB
       : state.rounds[state.currentRound][state.currentMatchup].songA;
 
@@ -287,35 +266,19 @@ export function advanceBracket(
     winner,
   };
 
-  const newChoices = [
-    ...state.allChoices,
-    { winner, loser, round: state.currentRound },
-  ];
-
+  const newChoices = [...state.allChoices, { winner, loser, round: state.currentRound }];
   const roundMatchups = newRounds[state.currentRound].length;
-  const isLastMatchupInRound =
-    state.currentMatchup === roundMatchups - 1;
+  const isLastMatchupInRound = state.currentMatchup === roundMatchups - 1;
 
   if (isLastMatchupInRound) {
-    // Build next round from winners
     const nextRound = state.currentRound + 1;
     if (nextRound <= 3) {
       const roundWinners = newRounds[state.currentRound].map((m) => m.winner!);
       const nextMatchups: BracketMatchup[] = [];
       for (let i = 0; i < roundWinners.length; i += 2) {
-        nextMatchups.push({
-          songA: roundWinners[i],
-          songB: roundWinners[i + 1],
-          winner: null,
-        });
+        nextMatchups.push({ songA: roundWinners[i], songB: roundWinners[i + 1], winner: null });
       }
       newRounds[nextRound] = nextMatchups;
-
-      if (nextRound === 4) {
-        // This was the final — shouldn't happen since final is round 3
-        return { ...state, rounds: newRounds, allChoices: newChoices, winner };
-      }
-
       return {
         ...state,
         rounds: newRounds,
@@ -325,22 +288,11 @@ export function advanceBracket(
         winner: nextRound > 3 ? winner : null,
       };
     } else {
-      // Done — current round was the final
-      return {
-        ...state,
-        rounds: newRounds,
-        allChoices: newChoices,
-        winner,
-      };
+      return { ...state, rounds: newRounds, allChoices: newChoices, winner };
     }
   }
 
-  return {
-    ...state,
-    rounds: newRounds,
-    currentMatchup: state.currentMatchup + 1,
-    allChoices: newChoices,
-  };
+  return { ...state, rounds: newRounds, currentMatchup: state.currentMatchup + 1, allChoices: newChoices };
 }
 
 export function isBracketComplete(state: BracketState): boolean {

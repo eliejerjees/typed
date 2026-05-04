@@ -7,8 +7,23 @@ import { advanceBracket, isBracketComplete } from "@/lib/types";
 import ProgressBar from "@/components/shared/ProgressBar/ProgressBar";
 import styles from "./SongBracketStep.module.css";
 
-const ROUND_NAMES = ["Round of 16", "Quarterfinals", "Semifinals", "Final"];
-const ROUND_SHORT = ["R16", "QF", "SF", "Final"];
+const ROUND_LABELS = ["R16", "QF", "SF", "Final"];
+const ROUND_NAMES  = ["Round of 16", "Quarterfinals", "Semifinals", "Final"];
+const MATCHUP_COUNTS = [8, 4, 2, 1];
+
+// Visual bracket constants
+const H        = 500;   // total bracket height (px)
+const SLOT_H   = 24;    // height of one song slot
+const SLOT_GAP = 3;     // gap between the two slots in a matchup
+const MATCHUP_H = SLOT_H * 2 + SLOT_GAP;
+const ROUND_W  = 108;   // width of one round column
+const GAP_W    = 22;    // width of the SVG connector between rounds
+
+function centerY(round: number, idx: number): number {
+  return H * (2 * idx + 1) / (2 * MATCHUP_COUNTS[round]);
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 interface Props {
   bracket: BracketState;
@@ -25,22 +40,19 @@ export default function SongBracketStep({ bracket: initial, onComplete }: Props)
     ? null
     : bracket.rounds[bracket.currentRound]?.[bracket.currentMatchup];
 
+  const totalMatchups  = 15;
+  const progressPct    = Math.round((bracket.allChoices.length / totalMatchups) * 100);
+
   function pick(song: Song) {
     if (animating || done) return;
     setAnimating(true);
     setLastPicked(song.id);
     setTimeout(() => {
-      const next = advanceBracket(bracket, song);
-      setBracket(next);
+      setBracket(advanceBracket(bracket, song));
       setLastPicked(null);
       setAnimating(false);
-    }, 350);
+    }, 320);
   }
-
-  // Progress: total matchups across all rounds = 8+4+2+1 = 15
-  const totalMatchups = 15;
-  const completedMatchups = bracket.allChoices.length;
-  const progressPct = Math.round((completedMatchups / totalMatchups) * 100);
 
   return (
     <div className={styles.container}>
@@ -48,183 +60,196 @@ export default function SongBracketStep({ bracket: initial, onComplete }: Props)
 
       <div className={styles.layout}>
         {/* Header */}
-        <motion.div
-          className={styles.header}
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
+        <motion.div className={styles.header}
+          initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}>
           <p className={styles.eyebrow}>Step 3 of 7 — Music</p>
           <h2 className={styles.heading}>Song Bracket</h2>
           {!done && currentMatchup && (
             <p className={styles.roundLabel}>
-              {ROUND_NAMES[bracket.currentRound]} — Match{" "}
-              {bracket.currentMatchup + 1} of{" "}
-              {bracket.rounds[bracket.currentRound].length}
+              {ROUND_NAMES[bracket.currentRound]} &mdash; Match{" "}
+              {bracket.currentMatchup + 1} of {bracket.rounds[bracket.currentRound].length}
             </p>
           )}
         </motion.div>
 
-        {/* Round strip */}
-        <div className={styles.bracketStrip}>
-          {ROUND_SHORT.map((name, r) => {
-            const matchupCount = [8, 4, 2, 1][r];
-            const roundDone = bracket.currentRound > r || done;
-            const roundActive = !done && bracket.currentRound === r;
-            return (
-              <div key={r} className={styles.stripRound}>
-                {r > 0 && <div className={styles.stripSep} />}
-                {Array.from({ length: matchupCount }).map((_, m) => {
-                  const slotDone = roundDone || (roundActive && m < bracket.currentMatchup);
-                  const slotActive = roundActive && m === bracket.currentMatchup;
-                  return (
-                    <div
-                      key={m}
-                      className={`${styles.stripDot} ${slotDone ? styles.stripDotDone : ""} ${slotActive ? styles.stripDotActive : ""}`}
-                    />
-                  );
-                })}
-                <span className={styles.stripLabel}>{name}</span>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Matchup or complete */}
+        {/* Active matchup picker OR completion */}
         <AnimatePresence mode="wait">
           {done ? (
-            <motion.div
-              key="complete"
-              className={styles.completeOverlay}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: "spring", stiffness: 120 }}
-            >
-              <p className={styles.completeTitle}>
-                🏆 Your bracket champion
-              </p>
+            <motion.div key="complete" className={styles.completeOverlay}
+              initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "spring", stiffness: 120 }}>
+              <p className={styles.completeTitle}>Your bracket champion</p>
               {bracket.winner && (
                 <div className={styles.completeWinner}>
-                  {bracket.winner.albumCover ? (
-                    <img
-                      src={bracket.winner.albumCover}
-                      alt={bracket.winner.title}
-                      className={styles.completeAlbum}
-                    />
-                  ) : null}
+                  {bracket.winner.albumCover && (
+                    <img src={bracket.winner.albumCover} alt={bracket.winner.title}
+                      className={styles.completeAlbum} />
+                  )}
                   <p className={styles.completeSongName}>{bracket.winner.title}</p>
                   <p className={styles.completeArtist}>{bracket.winner.artist}</p>
                 </div>
               )}
-              <button
-                className={styles.completeBtn}
-                onClick={() => onComplete(bracket)}
-              >
+              <button className={styles.completeBtn} onClick={() => onComplete(bracket)}>
                 Next Step →
               </button>
             </motion.div>
-          ) : (
-            currentMatchup && (
-              <motion.div
-                key={`${bracket.currentRound}-${bracket.currentMatchup}`}
-                className={styles.matchup}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <SongCard
-                  song={currentMatchup.songA}
-                  onPick={() => pick(currentMatchup.songA)}
-                  picked={lastPicked === currentMatchup.songA.id}
-                  dimmed={lastPicked !== null && lastPicked !== currentMatchup.songA.id}
-                />
-
-                <div className={styles.vs}>VS</div>
-
-                <SongCard
-                  song={currentMatchup.songB}
-                  onPick={() => pick(currentMatchup.songB)}
-                  picked={lastPicked === currentMatchup.songB.id}
-                  dimmed={lastPicked !== null && lastPicked !== currentMatchup.songB.id}
-                />
-              </motion.div>
-            )
+          ) : currentMatchup && (
+            <motion.div key={`${bracket.currentRound}-${bracket.currentMatchup}`}
+              className={styles.matchup}
+              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.28 }}>
+              <SongCard song={currentMatchup.songA} onPick={() => pick(currentMatchup.songA)}
+                picked={lastPicked === currentMatchup.songA.id}
+                dimmed={lastPicked !== null && lastPicked !== currentMatchup.songA.id} />
+              <div className={styles.vs}>VS</div>
+              <SongCard song={currentMatchup.songB} onPick={() => pick(currentMatchup.songB)}
+                picked={lastPicked === currentMatchup.songB.id}
+                dimmed={lastPicked !== null && lastPicked !== currentMatchup.songB.id} />
+            </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Bracket map */}
-        {!done && (
-          <div className={styles.bracketMap}>
-            <p className={styles.bracketMapTitle}>Bracket Progress</p>
-            {ROUND_SHORT.map((name, r) => {
-              const matchups = bracket.rounds[r] ?? [];
-              if (r > bracket.currentRound && matchups.length === 0) return null;
-              const roundMatchupCount = [8, 4, 2, 1][r];
-              return (
-                <div key={r} className={styles.bracketRoundRow}>
-                  <span className={styles.bracketRoundName}>{name}</span>
-                  <div className={styles.bracketSlots}>
-                    {Array.from({ length: roundMatchupCount }).map((_, m) => {
-                      const matchup = matchups[m];
-                      const isActive =
-                        !done &&
-                        bracket.currentRound === r &&
-                        bracket.currentMatchup === m;
-                      const isDone = matchup?.winner != null;
-                      return (
-                        <div
-                          key={m}
-                          className={`${styles.bracketSlotChip} ${isActive ? styles.bracketSlotChipActive : ""} ${isDone ? styles.bracketSlotChipDone : ""}`}
-                        >
-                          <span
-                            className={`${styles.bracketSlotText} ${isActive ? styles.bracketSlotTextActive : ""}`}
-                          >
-                            {isDone
-                              ? matchup.winner!.title.slice(0, 10)
-                              : isActive
-                              ? "→ NOW"
-                              : "—"}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        {/* Visual bracket */}
+        {!done && <VisualBracket bracket={bracket} />}
       </div>
     </div>
   );
 }
 
-function SongCard({
-  song,
-  onPick,
-  picked,
-  dimmed,
-}: {
-  song: Song;
-  onPick: () => void;
-  picked: boolean;
-  dimmed: boolean;
+// ─── Visual bracket ───────────────────────────────────────────────────────────
+
+function VisualBracket({ bracket }: { bracket: BracketState }) {
+  const done = isBracketComplete(bracket);
+  const totalW = 4 * ROUND_W + 3 * GAP_W;
+
+  return (
+    <div className={styles.bracketWrapper}>
+      {/* Round labels header */}
+      <div className={styles.bracketLabels} style={{ width: totalW }}>
+        {ROUND_LABELS.map((lbl, r) => (
+          <div key={r} style={{ width: ROUND_W, flexShrink: 0,
+            marginLeft: r > 0 ? GAP_W : 0 }}
+            className={`${styles.bracketLabelCell} ${bracket.currentRound === r && !done ? styles.bracketLabelActive : ""}`}>
+            {lbl}
+          </div>
+        ))}
+      </div>
+
+      {/* Scrollable bracket body */}
+      <div className={styles.bracketScroll}>
+        <div style={{ width: totalW, height: H, display: "flex",
+          flexDirection: "row", position: "relative", flexShrink: 0 }}>
+
+          {[0, 1, 2, 3].map((r) => (
+            <>
+              {/* SVG connector gap before this round (skip first round) */}
+              {r > 0 && (
+                <svg key={`gap-${r}`} width={GAP_W} height={H}
+                  style={{ flexShrink: 0, display: "block" }}>
+                  {Array.from({ length: MATCHUP_COUNTS[r] }).map((_, pairIdx) => {
+                    const y1   = centerY(r - 1, pairIdx * 2);
+                    const y2   = centerY(r - 1, pairIdx * 2 + 1);
+                    const yMid = centerY(r, pairIdx);
+                    const xM   = GAP_W / 2;
+                    return (
+                      <g key={pairIdx}>
+                        <path
+                          d={`M 0 ${y1} H ${xM} V ${y2} H 0`}
+                          fill="none"
+                          stroke="rgba(255,255,255,0.22)"
+                          strokeWidth="1.5"
+                          strokeLinejoin="round"
+                        />
+                        <line x1={xM} y1={yMid} x2={GAP_W} y2={yMid}
+                          stroke="rgba(255,255,255,0.22)" strokeWidth="1.5" />
+                      </g>
+                    );
+                  })}
+                </svg>
+              )}
+
+              {/* Round column */}
+              <div key={`round-${r}`}
+                style={{ width: ROUND_W, height: H, position: "relative", flexShrink: 0 }}>
+                {Array.from({ length: MATCHUP_COUNTS[r] }).map((_, m) => {
+                  const matchup = bracket.rounds[r]?.[m];
+                  const cy = centerY(r, m);
+                  const isActive = !done &&
+                    bracket.currentRound === r && bracket.currentMatchup === m;
+                  const isPast = bracket.currentRound > r ||
+                    (bracket.currentRound === r && bracket.currentMatchup > m);
+
+                  const songA = r === 0 ? bracket.seeds[m * 2]     : (matchup?.songA ?? null);
+                  const songB = r === 0 ? bracket.seeds[m * 2 + 1] : (matchup?.songB ?? null);
+                  const winner = matchup?.winner ?? null;
+
+                  return (
+                    <div key={m} style={{
+                      position: "absolute",
+                      top: cy - MATCHUP_H / 2,
+                      left: 0, right: 0,
+                    }}>
+                      <BracketSlot song={songA}
+                        isWinner={!!winner && winner.id === songA?.id}
+                        isLoser={!!winner && winner.id !== songA?.id}
+                        isActive={isActive} isPast={isPast} />
+                      <div style={{ height: SLOT_GAP }} />
+                      <BracketSlot song={songB}
+                        isWinner={!!winner && winner.id === songB?.id}
+                        isLoser={!!winner && winner.id !== songB?.id}
+                        isActive={isActive} isPast={isPast} />
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Bracket slot ─────────────────────────────────────────────────────────────
+
+function BracketSlot({ song, isWinner, isLoser, isActive, isPast }: {
+  song: Song | null;
+  isWinner: boolean;
+  isLoser: boolean;
+  isActive: boolean;
+  isPast: boolean;
+}) {
+  const cls = [
+    styles.bSlot,
+    isWinner ? styles.bSlotWinner : "",
+    isLoser  ? styles.bSlotLoser  : "",
+    isActive ? styles.bSlotActive : "",
+    !song    ? styles.bSlotEmpty  : "",
+  ].filter(Boolean).join(" ");
+
+  return (
+    <div className={cls} style={{ height: SLOT_H }}>
+      <span className={styles.bSlotText}>
+        {song ? song.title : "TBD"}
+      </span>
+    </div>
+  );
+}
+
+// ─── Song card (interactive picker) ──────────────────────────────────────────
+
+function SongCard({ song, onPick, picked, dimmed }: {
+  song: Song; onPick: () => void; picked: boolean; dimmed: boolean;
 }) {
   return (
-    <motion.button
-      className={`${styles.songCard} ${picked ? styles.winnerCard : ""}`}
+    <motion.button className={`${styles.songCard} ${picked ? styles.winnerCard : ""}`}
       onClick={onPick}
-      animate={{
-        opacity: dimmed ? 0.3 : 1,
-        scale: picked ? 1.03 : 1,
-      }}
-      transition={{ duration: 0.25 }}
-    >
-      {song.albumCover ? (
-        <img src={song.albumCover} alt={song.title} className={styles.albumCover} />
-      ) : (
-        <div className={styles.albumCoverPlaceholder}>🎵</div>
-      )}
+      animate={{ opacity: dimmed ? 0.3 : 1, scale: picked ? 1.03 : 1 }}
+      transition={{ duration: 0.22 }}>
+      {song.albumCover
+        ? <img src={song.albumCover} alt={song.title} className={styles.albumCover} />
+        : <div className={styles.albumCoverPlaceholder}>🎵</div>
+      }
       <div className={styles.songInfo}>
         <p className={styles.songTitle}>{song.title}</p>
         <p className={styles.songArtist}>{song.artist}</p>

@@ -51,8 +51,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const {
     genreIds = [],
-    keptActorIds = [],
-  }: { genreIds: number[]; keptActorIds: number[] } = body;
+    actorId = null,
+  }: { genreIds: number[]; actorId: number | null } = body;
 
   const collected: Movie[] = [];
 
@@ -103,8 +103,8 @@ export async function POST(req: NextRequest) {
       } catch { /* continue */ }
     }
 
-    // ── 4. Movies from kept actors' top work ──────────────────────────────
-    for (const actorId of keptActorIds.slice(0, 3)) {
+    // ── 4. Top movies starring the actor KOTH champion ───────────────────
+    if (actorId) {
       try {
         const data = (await tmdbFetch(
           `/person/${actorId}/movie_credits`
@@ -113,14 +113,14 @@ export async function POST(req: NextRequest) {
         const movies = data.cast
           .filter((m) => m.poster_path && m.vote_count >= 1000 && m.vote_average >= 6.0)
           .sort((a, b) => b.vote_count - a.vote_count)
-          .slice(0, 5)
+          .slice(0, 8)
           .map(rawToMovie);
 
         collected.push(...movies);
       } catch { /* continue */ }
     }
 
-    // ── Dedupe, shuffle, cap at 40 (needs 16 for 15-round KOTH) ───────────
+    // ── Dedupe, shuffle, cap at 30 (KBC needs 15 + swap buffer) ──────────
     const seen = new Set<number>();
     const unique = collected.filter((m) => {
       if (seen.has(m.id) || !m.posterUrl) return false;
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
       return true;
     });
 
-    const pool = shuffle(unique).slice(0, 40);
+    const pool = shuffle(unique).slice(0, 30);
     return NextResponse.json({ movies: pool });
   } catch (err) {
     console.error("[tmdb/movies]", err);

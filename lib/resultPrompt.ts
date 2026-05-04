@@ -8,11 +8,11 @@ export function buildResultPrompt(data: AppData): string {
   const payload = {
     allowedCoreTypes: CORE_TYPES,
     interpretationPriority: {
-      highest: ["song bracket winner and path", "movie king-of-the-hill champion and path"],
-      strong: ["top 5 artists", "actor keep/bench/cut patterns"],
-      moderate: ["music subgenres", "top 5 shows"],
-      light: ["music genres", "movie genres"],
-      note: "Behavioral patterns from games should heavily influence the result. Stated preferences matter but should not override clear behavioral signals.",
+      highest: ["song bracket winner and path", "kept movies (explicit likes)", "kept shows (explicit likes)"],
+      strong: ["cut movies (explicit dislikes)", "top 5 artists", "actor KOTH champion's type"],
+      moderate: ["music subgenres", "stated genres", "benched movies/shows"],
+      light: ["music genres"],
+      note: "KBC kept/cut data is explicit behavioral evidence — weight it heavily. Stated preferences matter less than what they actually chose.",
     },
     musicData: {
       statedGenres: data.musicGenres,
@@ -31,19 +31,22 @@ export function buildResultPrompt(data: AppData): string {
       computedMusicMood: signals.musicMoodSignal,
       computedMusicVariety: signals.musicVarietySignal,
     },
+    actorData: {
+      kothChampion: signals.actorKothChampion
+        ? { name: signals.actorKothChampion.name, knownFor: signals.actorKothChampion.knownFor }
+        : null,
+    },
     movieData: {
       statedGenres: data.movieGenres,
-      kothChampion: signals.kothChampion
-        ? { title: signals.kothChampion.title, year: signals.kothChampion.year }
-        : null,
-      kothTopGenreIds: signals.kothTopGenres,
-      keptActors: signals.keptActorTypes,
-      cutActors: signals.cutActorTypes,
-      computedMovieMood: signals.movieMoodSignal,
-      computedMovieVariety: signals.movieVarietySignal,
+      keptMovies: signals.keptMovies.slice(0, 8).map((m) => ({ title: m.title, year: m.year })),
+      cutMovies: signals.cutMovies.slice(0, 5).map((m) => ({ title: m.title })),
+      topGenreIds: signals.movieTopGenreIds,
+      computedMood: signals.movieMoodSignal,
+      computedVariety: signals.movieVarietySignal,
     },
     showsData: {
-      topShows: data.topShows,
+      keptShows: signals.keptShows.slice(0, 8).map((s) => ({ title: s.title, year: s.year })),
+      topGenreIds: signals.showTopGenreIds,
     },
     computedContradictions: signals.contradictions,
     outputSchema: {

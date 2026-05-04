@@ -7,58 +7,56 @@ import type {
   AppData,
   AppStep,
   BracketState,
-  KOTHState,
-  ActorGameState,
+  ActorKOTHState,
+  MediaKBCState,
   Artist,
   Song,
   TypedResult,
+  MediaPreference,
 } from "@/lib/types";
 import { DEFAULT_APP_DATA, buildInitialBracket } from "@/lib/types";
 
-import LandingScreen from "@/components/Landing/LandingScreen";
-import ProcessingScreen from "@/components/Processing/ProcessingScreen";
-import ResultScreen from "@/components/Result/ResultScreen";
-import MusicGenresStep from "@/components/steps/MusicGenres/MusicGenresStep";
-import TopArtistsStep from "@/components/steps/TopArtists/TopArtistsStep";
-import SongBracketStep from "@/components/steps/SongBracket/SongBracketStep";
-import MovieGenresStep from "@/components/steps/MovieGenres/MovieGenresStep";
-import ActorGameStep from "@/components/steps/ActorGame/ActorGameStep";
-import MovieKOTHStep from "@/components/steps/MovieKOTH/MovieKOTHStep";
-import TopShowsStep from "@/components/steps/TopShows/TopShowsStep";
+import LandingScreen      from "@/components/Landing/LandingScreen";
+import ProcessingScreen   from "@/components/Processing/ProcessingScreen";
+import ResultScreen       from "@/components/Result/ResultScreen";
+import MusicGenresStep    from "@/components/steps/MusicGenres/MusicGenresStep";
+import TopArtistsStep     from "@/components/steps/TopArtists/TopArtistsStep";
+import SongBracketStep    from "@/components/steps/SongBracket/SongBracketStep";
+import MediaPreferenceStep from "@/components/steps/MediaPreference/MediaPreferenceStep";
+import MovieGenresStep    from "@/components/steps/MovieGenres/MovieGenresStep";
+import ActorKOTHStep      from "@/components/steps/ActorKOTH/ActorKOTHStep";
+import MediaKBCStep       from "@/components/steps/MediaKBC/MediaKBCStep";
 
-const LS_KEY = "typed_session_v2";
-const LS_STEP_KEY = "typed_step_v2";
+const LS_KEY      = "typed_session_v3";
+const LS_STEP_KEY = "typed_step_v3";
 
 const STEP_BG: Record<AppStep, string> = {
-  "landing":      "#c026d3",
-  "music-genres": "#7c3aed",
-  "top-artists":  "#e11d48",
-  "song-bracket": "#1d4ed8",
-  "movie-genres": "#059669",
-  "actor-game":   "#0f172a",
-  "movie-koth":   "#4338ca",
-  "top-shows":    "#d97706",
-  "processing":   "#c026d3",
-  "result":       "#7e22ce",
+  "landing":           "#c026d3",
+  "music-genres":      "#7c3aed",
+  "top-artists":       "#e11d48",
+  "song-bracket":      "#1d4ed8",
+  "media-preference":  "#0f172a",
+  "movie-genres":      "#059669",
+  "actor-koth":        "#312e81",
+  "movie-kbc":         "#14532d",
+  "show-kbc":          "#78350f",
+  "processing":        "#7e22ce",
+  "result":            "#c026d3",
 };
 
-
 export default function Home() {
-  const [step, setStep] = useState<AppStep>("landing");
-  const [appData, setAppData] = useState<AppData>(DEFAULT_APP_DATA);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [step, setStep]           = useState<AppStep>("landing");
+  const [appData, setAppData]     = useState<AppData>(DEFAULT_APP_DATA);
+  const [fetchError, setFetchError]     = useState<string | null>(null);
   const [isFetchingPool, setIsFetchingPool] = useState(false);
-  const [hasProgress, setHasProgress] = useState(false);
+  const [hasProgress, setHasProgress]   = useState(false);
   const mountedRef = useRef(true);
 
   useEffect(() => {
     try { setHasProgress(!!localStorage.getItem(LS_KEY)); } catch { /* ignore */ }
   }, []);
 
-  // Keep html + body background in sync so safe-area / overscroll matches the step colour
-  useEffect(() => {
-    setBg(step);
-  }, [step]);
+  useEffect(() => { setBg(step); }, [step]);
 
   function setBg(s: AppStep) {
     const color = STEP_BG[s];
@@ -82,7 +80,7 @@ export default function Home() {
 
   function loadFromStorage(): { step: AppStep; data: AppData } | null {
     try {
-      const raw = localStorage.getItem(LS_KEY);
+      const raw      = localStorage.getItem(LS_KEY);
       const savedStep = localStorage.getItem(LS_STEP_KEY) as AppStep | null;
       if (!raw || !savedStep) return null;
       return { step: savedStep, data: JSON.parse(raw) as AppData };
@@ -105,7 +103,7 @@ export default function Home() {
     if (nextStep) { setBg(nextStep); setStep(nextStep); }
   }
 
-  // ── Song pool ────────────────────────────────────────────────────────────────
+  // ── Song pool ─────────────────────────────────────────────────────────────────
   async function fetchSongPoolAndGo(artists: Artist[], genres: string[]) {
     setIsFetchingPool(true);
     setFetchError(null);
@@ -116,15 +114,14 @@ export default function Home() {
         body: JSON.stringify({ artistNames: artists.map((a) => a.name), genres }),
       });
       const data = await res.json();
-      const songs: Song[] = data.songs ?? [];
-      const enrichedArtists: Artist[] = data.enrichedArtists ?? artists;
+      const songs: Song[]     = data.songs ?? [];
+      const enrichedArtists   = data.enrichedArtists ?? artists;
 
       if (songs.length < 16) {
         setFetchError("Couldn't load enough songs. Try different artists.");
         setIsFetchingPool(false);
         return;
       }
-
       const bracket = buildInitialBracket(songs);
       update({ songPool: songs, bracketState: bracket, topArtists: enrichedArtists }, "song-bracket");
     } catch {
@@ -134,7 +131,7 @@ export default function Home() {
     }
   }
 
-  // ── Result generation ────────────────────────────────────────────────────────
+  // ── Result generation ─────────────────────────────────────────────────────────
   async function generateResult(data: AppData) {
     try {
       const res = await fetch("/api/result", {
@@ -182,23 +179,40 @@ export default function Home() {
   }
 
   function handleBracketComplete(bracket: BracketState) {
-    update({ bracketState: bracket }, "movie-genres");
+    update({ bracketState: bracket }, "media-preference");
+  }
+
+  function handleMediaPreference(pref: MediaPreference) {
+    update({ mediaPreference: pref }, "movie-genres");
   }
 
   function handleMovieGenres(genres: string[], genreIds: number[]) {
-    update({ movieGenres: genres, movieGenreIds: genreIds }, "actor-game");
+    // All paths → actor KOTH first, then KOTH champion personalises the media pool
+    update({ movieGenres: genres, movieGenreIds: genreIds }, "actor-koth");
   }
 
-  function handleActorGameComplete(actorState: ActorGameState) {
-    update({ actorGameState: actorState }, "movie-koth");
+  function handleActorKOTH(actorKothState: ActorKOTHState) {
+    // After actor KOTH, route to movies or shows KBC (or movies first if both)
+    const next = appData.mediaPreference === "shows" ? "show-kbc" : "movie-kbc";
+    update({ actorKothState }, next);
   }
 
-  function handleKOTHComplete(kothState: KOTHState) {
-    update({ kothState }, "top-shows");
+  function handleMovieKBC(movieKbcState: MediaKBCState) {
+    if (appData.mediaPreference === "both") {
+      update({ movieKbcState }, "show-kbc");
+    } else {
+      // movies only → done
+      const nextData: AppData = { ...appData, movieKbcState };
+      setAppData(nextData);
+      saveToStorage("processing", nextData);
+      setBg("processing");
+      setStep("processing");
+      generateResult(nextData);
+    }
   }
 
-  function handleTopShows(shows: string[]) {
-    const nextData: AppData = { ...appData, topShows: shows };
+  function handleShowKBC(showKbcState: MediaKBCState) {
+    const nextData: AppData = { ...appData, showKbcState };
     setAppData(nextData);
     saveToStorage("processing", nextData);
     setBg("processing");
@@ -273,27 +287,34 @@ export default function Home() {
             <SongBracketStep bracket={appData.bracketState} onComplete={handleBracketComplete} />
           )}
 
+          {step === "media-preference" && (
+            <MediaPreferenceStep onChoice={handleMediaPreference} />
+          )}
+
           {step === "movie-genres" && (
             <MovieGenresStep onNext={handleMovieGenres} />
           )}
 
-          {step === "actor-game" && (
-            <ActorGameStep
+          {step === "actor-koth" && (
+            <ActorKOTHStep onComplete={handleActorKOTH} />
+          )}
+
+          {step === "movie-kbc" && (
+            <MediaKBCStep
+              mediaType="movies"
               movieGenreIds={appData.movieGenreIds}
-              onComplete={handleActorGameComplete}
+              actorKothChampionId={appData.actorKothState?.champion?.id ?? null}
+              onComplete={handleMovieKBC}
             />
           )}
 
-          {step === "movie-koth" && (
-            <MovieKOTHStep
+          {step === "show-kbc" && (
+            <MediaKBCStep
+              mediaType="shows"
               movieGenreIds={appData.movieGenreIds}
-              keptActorIds={appData.actorGameState?.kept.map((a) => a.id) ?? []}
-              onComplete={handleKOTHComplete}
+              actorKothChampionId={appData.actorKothState?.champion?.id ?? null}
+              onComplete={handleShowKBC}
             />
-          )}
-
-          {step === "top-shows" && (
-            <TopShowsStep onNext={handleTopShows} />
           )}
 
           {step === "processing" && <ProcessingScreen />}
