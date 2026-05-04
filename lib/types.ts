@@ -181,7 +181,27 @@ export const DEFAULT_APP_DATA: AppData = {
 export interface TypedResult {
   coreType: string;
   subType: string;
+  hook: string;
   traits: string[];
+  receipts: string[];
+  patterns: string[];
+  contradiction: string;
+  mostLike: {
+    character: string;
+    sourceTitle?: string | null;
+    explanation: string;
+  };
+  predictions: {
+    wouldLove: string;
+    wouldntEnjoy: string;
+    wouldNeverFinish: string;
+  };
+  recommendations: {
+    movies: string[];
+    artists: string[];
+    show: string;
+  };
+  // legacy fields kept for fallback compatibility
   summary: string;
   musicBreakdown: string;
   movieBreakdown: string;
@@ -189,22 +209,22 @@ export interface TypedResult {
 }
 
 export const CORE_TYPES = [
-  "The Romantic",
-  "The Realist",
-  "The Explorer",
-  "The Observer",
-  "The Idealist",
-  "The Perfectionist",
+  "The Main Character",
+  "The Strategist",
   "The Escapist",
-  "The Controller",
-  "The Provocateur",
+  "The Lover",
+  "The Grinder",
+  "The Watcher",
+  "The Chaos Agent",
+  "The Perfectionist",
   "The Minimalist",
-  "The Collector",
-  "The Maverick",
-  "The Architect",
+  "The Dreamer",
+  "The Control Freak",
+  "The Story Seeker",
+  "The Realist",
   "The Empath",
+  "The Explorer",
   "The Hedonist",
-  "The Wanderer",
 ] as const;
 
 // ─── API Response Types ───────────────────────────────────────────────────────

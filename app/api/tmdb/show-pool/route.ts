@@ -3,26 +3,15 @@ import type { Movie } from "@/lib/types";
 
 const IMG_BASE = "https://image.tmdb.org/t/p/w500";
 
-// Movie genre IDs that map directly to the same TV genre ID
 const SHARED_GENRE_IDS = new Set([
-  16,    // Animation
-  18,    // Drama
-  35,    // Comedy
-  80,    // Crime
-  99,    // Documentary
-  9648,  // Mystery
-  10749, // Romance
-  37,    // Western
-  27,    // Horror
-  53,    // Thriller
+  16, 18, 35, 80, 99, 9648, 10749, 37, 27, 53,
 ]);
 
-// Movie genre IDs that map to a different TV genre ID
 const MOVIE_TO_TV_GENRE: Record<number, number> = {
-  28:  10759, // Action → Action & Adventure
-  12:  10759, // Adventure → Action & Adventure
-  878: 10765, // Science Fiction → Sci-Fi & Fantasy
-  14:  10765, // Fantasy → Sci-Fi & Fantasy
+  28:  10759,
+  12:  10759,
+  878: 10765,
+  14:  10765,
 };
 
 interface TMDBShow {
@@ -77,8 +66,11 @@ export async function POST(req: NextRequest) {
 
   const collected: Movie[] = [];
 
+  // Randomise page start so each session gets different shows
+  const pageOffset = Math.floor(Math.random() * 4);
+
   try {
-    // ── 1. Genre-matched shows — translate movie genre IDs to TV genre IDs ──
+    // ── 1. Genre-matched shows ────────────────────────────────────────────────
     if (movieGenreIds.length > 0) {
       const tvGenreIds = movieGenreIds.flatMap((id) => {
         if (SHARED_GENRE_IDS.has(id)) return [id];
@@ -89,66 +81,82 @@ export async function POST(req: NextRequest) {
 
       if (uniqueTvGenres.length > 0) {
         const genreStr = uniqueTvGenres.slice(0, 3).join(",");
-        for (let page = 1; page <= 2; page++) {
+        for (let i = 0; i < 4; i++) {
+          const page = (pageOffset + i) % 8 + 1;
           try {
             const data = (await tmdbFetch(
-              `/discover/tv?with_genres=${genreStr}&sort_by=vote_count.desc&vote_count.gte=300&vote_average.gte=7.0&page=${page}`
+              `/discover/tv?with_genres=${genreStr}&sort_by=vote_count.desc&vote_count.gte=150&vote_average.gte=6.5&page=${page}`
             )) as { results: TMDBShow[] };
-
             collected.push(...data.results.filter((s) => s.poster_path).map(rawToShow));
           } catch { /* continue */ }
         }
       }
     }
 
-    // ── 2. High-quality baseline — well-known shows everyone has heard of ──
-    for (let page = 1; page <= 3 && collected.length < 40; page++) {
+    // ── 2. All-time highly voted shows ────────────────────────────────────────
+    for (let i = 0; i < 3; i++) {
+      const page = (pageOffset + i) % 6 + 1;
       try {
         const data = (await tmdbFetch(
           `/discover/tv?sort_by=vote_count.desc&vote_count.gte=500&vote_average.gte=7.0&page=${page}`
         )) as { results: TMDBShow[] };
-
         collected.push(...data.results.filter((s) => s.poster_path).map(rawToShow));
       } catch { /* continue */ }
     }
 
-    // ── 3. Currently popular TV ───────────────────────────────────────────
-    for (let page = 1; page <= 2; page++) {
+    // ── 3. Top rated TV (high score, not just popular) ────────────────────────
+    for (let i = 0; i < 3; i++) {
+      const page = (pageOffset + i) % 6 + 1;
       try {
-        const data = (await tmdbFetch(`/tv/popular?page=${page}`)) as { results: TMDBShow[] };
+        const data = (await tmdbFetch(`/tv/top_rated?page=${page}`)) as { results: TMDBShow[] };
         collected.push(
-          ...data.results.filter((s) => s.poster_path && s.vote_count >= 200).map(rawToShow)
+          ...data.results.filter((s) => s.poster_path && s.vote_count >= 150).map(rawToShow)
         );
       } catch { /* continue */ }
     }
 
-    // ── 4. Shows starring the actor KOTH champion ────────────────────────
+    // ── 4. Currently popular TV ───────────────────────────────────────────────
+    for (let i = 0; i < 3; i++) {
+      const page = (pageOffset + i) % 5 + 1;
+      try {
+        const data = (await tmdbFetch(`/tv/popular?page=${page}`)) as { results: TMDBShow[] };
+        collected.push(
+          ...data.results.filter((s) => s.poster_path && s.vote_count >= 100).map(rawToShow)
+        );
+      } catch { /* continue */ }
+    }
+
+    // ── 5. Actor KOTH champion's shows ────────────────────────────────────────
     if (actorId) {
       try {
         const credits = (await tmdbFetch(`/person/${actorId}/tv_credits`)) as {
-          cast: Array<{ id: number; name: string; poster_path: string | null; genre_ids: number[]; first_air_date: string; overview: string; vote_average: number; vote_count: number }>;
+          cast: Array<{
+            id: number; name: string; poster_path: string | null;
+            genre_ids: number[]; first_air_date: string; overview: string;
+            vote_average: number; vote_count: number;
+          }>;
         };
         const shows = credits.cast
           .filter((s) => s.poster_path && s.vote_count >= 100 && s.vote_average >= 6.0)
           .sort((a, b) => b.vote_count - a.vote_count)
-          .slice(0, 6)
+          .slice(0, 8)
           .map((s) => rawToShow(s as TMDBShow));
         collected.push(...shows);
       } catch { /* continue */ }
     }
 
-    // ── 5. Anime — animation genre (16) from Japan ────────────────────────
-    for (let page = 1; page <= 2; page++) {
+    // ── 6. Anime ──────────────────────────────────────────────────────────────
+    for (let i = 0; i < 2; i++) {
+      const page = (pageOffset + i) % 5 + 1;
       try {
         const data = (await tmdbFetch(
-          `/discover/tv?with_genres=16&with_origin_country=JP&sort_by=vote_count.desc&vote_count.gte=200&vote_average.gte=7.0&page=${page}`
+          `/discover/tv?with_genres=16&with_origin_country=JP&sort_by=vote_count.desc&vote_count.gte=150&vote_average.gte=7.0&page=${page}`
         )) as { results: TMDBShow[] };
-
         collected.push(...data.results.filter((s) => s.poster_path).map(rawToShow));
       } catch { /* continue */ }
     }
 
-    // ── Dedupe, shuffle, cap at 35 ────────────────────────────────────────
+    // ── Dedupe, shuffle, cap at 60 ────────────────────────────────────────────
     const seen = new Set<number>();
     const unique = collected.filter((s) => {
       if (seen.has(s.id) || !s.posterUrl) return false;
@@ -156,7 +164,7 @@ export async function POST(req: NextRequest) {
       return true;
     });
 
-    const pool = shuffle(unique).slice(0, 30);
+    const pool = shuffle(unique).slice(0, 60);
     return NextResponse.json({ shows: pool });
   } catch (err) {
     console.error("[tmdb/show-pool]", err);

@@ -7,6 +7,21 @@ import type {
   Song,
 } from "./types";
 
+// ─── TMDB genre map ───────────────────────────────────────────────────────────
+
+const TMDB_GENRE_NAMES: Record<number, string> = {
+  28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy",
+  80: "Crime", 99: "Documentary", 18: "Drama", 10751: "Family",
+  14: "Fantasy", 36: "History", 27: "Horror", 10402: "Music",
+  9648: "Mystery", 10749: "Romance", 878: "Sci-Fi", 53: "Thriller",
+  10752: "War", 37: "Western",
+  10759: "Action & Adventure", 10765: "Sci-Fi & Fantasy",
+};
+
+export function genreNamesFromIds(ids: number[]): string[] {
+  return ids.map((id) => TMDB_GENRE_NAMES[id]).filter(Boolean);
+}
+
 // ─── Behavioral signal computation ───────────────────────────────────────────
 
 export interface ComputedSignals {
@@ -24,12 +39,16 @@ export interface ComputedSignals {
   keptMovies: Movie[];
   cutMovies: Movie[];
   movieTopGenreIds: string[];
+  keptMovieGenreNames: string[];
+  cutMovieGenreNames: string[];
   movieMoodSignal: string;
   movieVarietySignal: string;
+  movieDecadeLean: string;
 
   // Show KBC
   keptShows: Movie[];
   showTopGenreIds: string[];
+  keptShowGenreNames: string[];
 
   // Cross-signal
   contradictions: string[];
@@ -51,13 +70,13 @@ function getSongFromHistory(bracketState: BracketState, round: number): Song | n
 
 function detectMusicMood(bracketState: BracketState, artistGenres: string[]): string {
   const allGenres = artistGenres.join(" ").toLowerCase();
-  const moodyKeywords    = ["sad", "soul", "blues", "slow", "folk", "acoustic", "melancholy", "emo", "indie", "dream", "ambient", "lo-fi", "r&b"];
+  const moodyKeywords      = ["sad", "soul", "blues", "slow", "folk", "acoustic", "melancholy", "emo", "indie", "dream", "ambient", "lo-fi", "r&b"];
   const highEnergyKeywords = ["punk", "metal", "hip-hop", "rap", "edm", "dance", "pop", "trap", "house", "techno", "club", "drill"];
   const introspectiveKeywords = ["indie", "alternative", "jazz", "classical", "post-", "progressive", "art"];
 
   let moodyScore = 0, energyScore = 0, introspectiveScore = 0;
-  moodyKeywords.forEach((k) => { if (allGenres.includes(k)) moodyScore++; });
-  highEnergyKeywords.forEach((k) => { if (allGenres.includes(k)) energyScore++; });
+  moodyKeywords.forEach((k)        => { if (allGenres.includes(k)) moodyScore++; });
+  highEnergyKeywords.forEach((k)   => { if (allGenres.includes(k)) energyScore++; });
   introspectiveKeywords.forEach((k) => { if (allGenres.includes(k)) introspectiveScore++; });
 
   if (moodyScore > energyScore && moodyScore > introspectiveScore) return "leans emotional/moody";
@@ -67,7 +86,6 @@ function detectMusicMood(bracketState: BracketState, artistGenres: string[]): st
 }
 
 function detectMediaMood(kbcState: MediaKBCState, statedGenreIds: number[]): string {
-  // TMDB genre IDs: 27=Horror, 53=Thriller, 18=Drama, 28=Action, 35=Comedy, 10749=Romance, 878=Sci-Fi
   const darkGenres      = [27, 53, 9648];
   const heavyGenres     = [18, 36];
   const spectacleGenres = [28, 12, 878, 14];
@@ -75,7 +93,6 @@ function detectMediaMood(kbcState: MediaKBCState, statedGenreIds: number[]): str
 
   const net = { dark: 0, spectacle: 0, light: 0, heavy: 0 };
 
-  // Kept = positive signal
   kbcState.kept.forEach((m) => {
     m.genreIds.forEach((id) => {
       if (darkGenres.includes(id))      net.dark      += 1;
@@ -85,7 +102,6 @@ function detectMediaMood(kbcState: MediaKBCState, statedGenreIds: number[]): str
     });
   });
 
-  // Cut = negative signal (half weight so kept dominates)
   kbcState.cut.forEach((m) => {
     m.genreIds.forEach((id) => {
       if (darkGenres.includes(id))      net.dark      -= 0.5;
@@ -95,7 +111,6 @@ function detectMediaMood(kbcState: MediaKBCState, statedGenreIds: number[]): str
     });
   });
 
-  // Stated genres add a light nudge
   statedGenreIds.forEach((id) => {
     if (darkGenres.includes(id))      net.dark      += 0.3;
     if (spectacleGenres.includes(id)) net.spectacle += 0.3;
@@ -124,30 +139,61 @@ function topGenreIds(movies: Movie[], n = 3): string[] {
     .map(([id]) => id);
 }
 
+function topGenreNames(movies: Movie[], n = 4): string[] {
+  const freq: Record<number, number> = {};
+  movies.forEach((m) => {
+    m.genreIds.forEach((id) => {
+      freq[id] = (freq[id] ?? 0) + 1;
+    });
+  });
+  return Object.entries(freq)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, n)
+    .map(([id]) => TMDB_GENRE_NAMES[Number(id)])
+    .filter(Boolean);
+}
+
+function computeDecadeLean(movies: Movie[]): string {
+  if (movies.length === 0) return "unknown";
+  const counts = { recent: 0, mid: 0, classic: 0 };
+  movies.forEach((m) => {
+    if (m.year >= 2015)      counts.recent++;
+    else if (m.year >= 2000) counts.mid++;
+    else if (m.year > 0)     counts.classic++;
+  });
+  const max = Math.max(counts.recent, counts.mid, counts.classic);
+  if (counts.recent === max) return "skews recent (2015+)";
+  if (counts.mid === max)    return "skews 2000s–2010s";
+  return "includes classics (pre-2000)";
+}
+
 function detectContradictions(data: AppData): string[] {
   const contradictions: string[] = [];
   if (!data.bracketState || !data.movieKbcState) return contradictions;
 
   const artistGenres = data.topArtists.flatMap((a) => a.tags);
-  const musicMood = detectMusicMood(data.bracketState, artistGenres);
-  const movieMood = detectMediaMood(data.movieKbcState, data.movieGenreIds);
+  const musicMood    = detectMusicMood(data.bracketState, artistGenres);
+  const movieMood    = detectMediaMood(data.movieKbcState, data.movieGenreIds);
 
   if (musicMood.includes("high-energy") && movieMood.includes("dark/psychological")) {
-    contradictions.push("Claims high-energy music taste but consistently chose dark, psychological films.");
+    contradictions.push("Your music says you want energy and momentum — your movie choices say you want dread and moral complexity.");
   }
   if (musicMood.includes("emotional/moody") && movieMood.includes("spectacle")) {
-    contradictions.push("Music choices lean emotional and intimate, but movie picks favour spectacle and scale.");
+    contradictions.push("You seek intimacy in music but spectacle in film. You're two different people depending on the medium.");
+  }
+  if (musicMood.includes("introspective") && movieMood.includes("spectacle")) {
+    contradictions.push("You think quietly but watch loudly.");
   }
 
   const statedMusicGenres = data.musicGenres.map((g) => g.toLowerCase());
   const bracketWinnerArtistGenres =
     data.topArtists.find((a) => a.name === data.bracketState?.winner?.artistId)?.tags ?? [];
   const claimsMainstream = statedMusicGenres.some((g) => ["pop", "hip-hop", "rap"].includes(g));
-  const winnerIsNiche = bracketWinnerArtistGenres.some((g) =>
+  const winnerIsNiche    = bracketWinnerArtistGenres.some((g) =>
     ["indie", "alternative", "folk", "jazz", "classical", "ambient"].some((k) => g.includes(k))
   );
   if (claimsMainstream && winnerIsNiche) {
-    contradictions.push("Claimed mainstream music taste but bracket behaviour consistently favoured niche/indie choices.");
+    contradictions.push("You said mainstream, but when it came to picking a winner you went niche. Your stated taste and your actual taste aren't the same.");
   }
 
   return contradictions;
@@ -191,9 +237,12 @@ export function computeSignals(data: AppData): ComputedSignals {
   const actorKothChampion = data.actorKothState?.champion ?? null;
 
   // ── Movie KBC ────────────────────────────────────────────────────────────────
-  const keptMovies = data.movieKbcState?.kept ?? [];
-  const cutMovies  = data.movieKbcState?.cut  ?? [];
-  const movieTopGenreIds = topGenreIds(keptMovies);
+  const keptMovies         = data.movieKbcState?.kept ?? [];
+  const cutMovies          = data.movieKbcState?.cut  ?? [];
+  const movieTopGenreIds   = topGenreIds(keptMovies);
+  const keptMovieGenreNames = topGenreNames(keptMovies, 5);
+  const cutMovieGenreNames  = topGenreNames(cutMovies, 3);
+  const movieDecadeLean    = computeDecadeLean(keptMovies);
 
   const movieMoodSignal = data.movieKbcState
     ? detectMediaMood(data.movieKbcState, data.movieGenreIds)
@@ -207,8 +256,9 @@ export function computeSignals(data: AppData): ComputedSignals {
   })();
 
   // ── Show KBC ─────────────────────────────────────────────────────────────────
-  const keptShows     = data.showKbcState?.kept ?? [];
-  const showTopGenreIds = topGenreIds(keptShows);
+  const keptShows          = data.showKbcState?.kept ?? [];
+  const showTopGenreIds    = topGenreIds(keptShows);
+  const keptShowGenreNames = topGenreNames(keptShows, 4);
 
   const contradictions = detectContradictions(data);
 
@@ -222,10 +272,14 @@ export function computeSignals(data: AppData): ComputedSignals {
     keptMovies,
     cutMovies,
     movieTopGenreIds,
+    keptMovieGenreNames,
+    cutMovieGenreNames,
     movieMoodSignal,
     movieVarietySignal,
+    movieDecadeLean,
     keptShows,
     showTopGenreIds,
+    keptShowGenreNames,
     contradictions,
   };
 }

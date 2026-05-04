@@ -56,71 +56,75 @@ export async function POST(req: NextRequest) {
 
   const collected: Movie[] = [];
 
+  // Randomise which pages we pull so each session sees different movies
+  const pageOffset = Math.floor(Math.random() * 4); // 0–3
+
   try {
-    // ── 1. Genre-specific discover — high vote count only ──────────────────
+    // ── 1. Genre-specific discover ────────────────────────────────────────────
     if (genreIds.length > 0) {
       const genreStr = genreIds.slice(0, 3).join(",");
-      for (let page = 1; page <= 3 && collected.length < 30; page++) {
+      for (let i = 0; i < 4; i++) {
+        const page = (pageOffset + i) % 8 + 1; // pages 1–8, offset per session
         try {
           const data = (await tmdbFetch(
-            `/discover/movie?with_genres=${genreStr}&sort_by=vote_count.desc&vote_count.gte=3000&vote_average.gte=6.5&page=${page}`
+            `/discover/movie?with_genres=${genreStr}&sort_by=vote_count.desc&vote_count.gte=1500&vote_average.gte=6.0&page=${page}`
           )) as { results: TMDBMovie[] };
-
-          const movies = data.results
-            .filter((m) => m.poster_path && m.vote_count >= 3000)
-            .map(rawToMovie);
-          collected.push(...movies);
+          collected.push(...data.results.filter((m) => m.poster_path).map(rawToMovie));
         } catch { /* continue */ }
       }
     }
 
-    // ── 2. All-time popular movies as baseline ─────────────────────────────
-    // Ensures well-known movies even if genre results are thin
-    for (let page = 1; page <= 3 && collected.length < 50; page++) {
+    // ── 2. All-time highly voted ──────────────────────────────────────────────
+    for (let i = 0; i < 3; i++) {
+      const page = (pageOffset + i) % 6 + 1;
       try {
         const data = (await tmdbFetch(
           `/discover/movie?sort_by=vote_count.desc&vote_count.gte=5000&vote_average.gte=6.5&page=${page}`
         )) as { results: TMDBMovie[] };
-
-        const movies = data.results
-          .filter((m) => m.poster_path)
-          .map(rawToMovie);
-        collected.push(...movies);
+        collected.push(...data.results.filter((m) => m.poster_path).map(rawToMovie));
       } catch { /* continue */ }
     }
 
-    // ── 3. Currently popular (recent hits people actually know) ────────────
-    for (let page = 1; page <= 2; page++) {
+    // ── 3. Top rated (high score, not just blockbusters) ──────────────────────
+    for (let i = 0; i < 3; i++) {
+      const page = (pageOffset + i) % 6 + 1;
       try {
         const data = (await tmdbFetch(
-          `/movie/popular?page=${page}`
+          `/movie/top_rated?page=${page}`
         )) as { results: TMDBMovie[] };
-
-        const movies = data.results
-          .filter((m) => m.poster_path && m.vote_count >= 1000)
-          .map(rawToMovie);
-        collected.push(...movies);
+        collected.push(
+          ...data.results.filter((m) => m.poster_path && m.vote_count >= 500).map(rawToMovie)
+        );
       } catch { /* continue */ }
     }
 
-    // ── 4. Top movies starring the actor KOTH champion ───────────────────
+    // ── 4. Currently popular (recent titles people actually know) ─────────────
+    for (let i = 0; i < 3; i++) {
+      const page = (pageOffset + i) % 5 + 1;
+      try {
+        const data = (await tmdbFetch(`/movie/popular?page=${page}`)) as { results: TMDBMovie[] };
+        collected.push(
+          ...data.results.filter((m) => m.poster_path && m.vote_count >= 500).map(rawToMovie)
+        );
+      } catch { /* continue */ }
+    }
+
+    // ── 5. Actor KOTH champion's top movies ───────────────────────────────────
     if (actorId) {
       try {
-        const data = (await tmdbFetch(
-          `/person/${actorId}/movie_credits`
-        )) as { cast: TMDBMovie[] };
-
+        const data = (await tmdbFetch(`/person/${actorId}/movie_credits`)) as {
+          cast: TMDBMovie[];
+        };
         const movies = data.cast
-          .filter((m) => m.poster_path && m.vote_count >= 1000 && m.vote_average >= 6.0)
+          .filter((m) => m.poster_path && m.vote_count >= 500 && m.vote_average >= 6.0)
           .sort((a, b) => b.vote_count - a.vote_count)
-          .slice(0, 8)
+          .slice(0, 10)
           .map(rawToMovie);
-
         collected.push(...movies);
       } catch { /* continue */ }
     }
 
-    // ── Dedupe, shuffle, cap at 30 (KBC needs 15 + swap buffer) ──────────
+    // ── Dedupe, shuffle, cap at 60 ────────────────────────────────────────────
     const seen = new Set<number>();
     const unique = collected.filter((m) => {
       if (seen.has(m.id) || !m.posterUrl) return false;
@@ -128,7 +132,7 @@ export async function POST(req: NextRequest) {
       return true;
     });
 
-    const pool = shuffle(unique).slice(0, 30);
+    const pool = shuffle(unique).slice(0, 60);
     return NextResponse.json({ movies: pool });
   } catch (err) {
     console.error("[tmdb/movies]", err);

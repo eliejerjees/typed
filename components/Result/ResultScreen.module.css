@@ -53,7 +53,18 @@
   text-align: center;
 }
 
-/* ─── Summary ────────────────────────────────────────────────────────────── */
+/* ─── Hook ───────────────────────────────────────────────────────────────── */
+.hook {
+  max-width: 520px;
+  font-size: var(--text-lg);
+  font-weight: 600;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.9);
+  text-align: center;
+  font-style: italic;
+}
+
+/* ─── Summary (legacy, keep for fallback) ────────────────────────────────── */
 .summary {
   max-width: 520px;
   font-size: var(--text-lg);
@@ -81,12 +92,20 @@
   color: #fff;
 }
 
-/* ─── Breakdown cards ────────────────────────────────────────────────────── */
+/* ─── Sections wrapper ───────────────────────────────────────────────────── */
+.sections {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ─── Breakdown cards (legacy alias) ─────────────────────────────────────── */
 .breakdowns {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .card {
@@ -153,4 +172,144 @@
   font-size: var(--text-xs);
   color: rgba(255, 255, 255, 0.25);
   letter-spacing: 0.1em;
+}
+
+/* ─── Bullet list (Evidence + Patterns) ─────────────────────────────────── */
+.bulletList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.bulletItem {
+  font-size: var(--text-base);
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.85);
+  padding-left: 16px;
+  position: relative;
+}
+
+.bulletItem::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+  color: rgba(255, 255, 255, 0.35);
+  font-weight: 400;
+}
+
+/* ─── Most Like card ─────────────────────────────────────────────────────── */
+.mostLikeCard {
+  background: rgba(255, 255, 255, 0.13);
+}
+
+.mostLikeInner {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.mostLikePoster {
+  width: 72px;
+  aspect-ratio: 2 / 3;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+}
+
+.mostLikeText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.mostLikeCharacter {
+  font-size: var(--text-2xl);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #fff;
+  line-height: 1.1;
+}
+
+.mostLikeSource {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 4px;
+}
+
+/* ─── Predictions ────────────────────────────────────────────────────────── */
+.predictions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.prediction {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.predictionLabel {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.predictionValue {
+  font-size: var(--text-base);
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.88);
+  font-weight: 500;
+}
+
+/* ─── Recommendations ────────────────────────────────────────────────────── */
+.recoCard {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.recoGroups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.recoGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recoGroupLabel {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.recoPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.recoPill {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-full);
+  padding: 5px 14px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
 }
