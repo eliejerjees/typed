@@ -126,7 +126,7 @@ export default function ActorKOTHStep({ onComplete }: Props) {
                 transition={{ duration: 0.35 }}
                 onClick={() => pick(champion)}
               >
-                {round > 1 && <span className={styles.championBadge}>👑 Champion</span>}
+                {round > 1 && <span className={styles.championBadge}> Champion</span>}
                 {champion.imageUrl
                   ? <img src={champion.imageUrl} alt={champion.name} className={styles.actorPhoto} />
                   : <div className={styles.actorPhotoPlaceholder}>🎬</div>
