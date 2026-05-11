@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Movie } from "@/lib/types";
+import { tmdbFetch } from "@/lib/tmdbClient";
+import { shuffle } from "@/lib/utils";
 
 const IMG_BASE = "https://image.tmdb.org/t/p/w500";
 
@@ -20,21 +22,8 @@ interface TMDBShow {
   poster_path: string | null;
   genre_ids: number[];
   first_air_date: string;
-  overview: string;
   vote_average: number;
   vote_count: number;
-}
-
-async function tmdbFetch(path: string): Promise<unknown> {
-  const apiKey = process.env.TMDB_API_KEY;
-  if (!apiKey) throw new Error("Missing TMDB_API_KEY");
-  const sep = path.includes("?") ? "&" : "?";
-  const res = await fetch(
-    `https://api.themoviedb.org/3${path}${sep}api_key=${apiKey}`,
-    { cache: "no-store" }
-  );
-  if (!res.ok) throw new Error(`TMDB error ${res.status}`);
-  return res.json();
 }
 
 function rawToShow(s: TMDBShow): Movie {
@@ -44,17 +33,7 @@ function rawToShow(s: TMDBShow): Movie {
     posterUrl: s.poster_path ? `${IMG_BASE}${s.poster_path}` : "",
     genreIds: s.genre_ids,
     year: s.first_air_date ? parseInt(s.first_air_date.slice(0, 4)) : 0,
-    overview: s.overview,
   };
-}
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
 }
 
 export async function POST(req: NextRequest) {

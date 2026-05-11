@@ -176,8 +176,6 @@ function VisualBracket({ bracket }: { bracket: BracketState }) {
                   const cy = centerY(r, m);
                   const isActive = !done &&
                     bracket.currentRound === r && bracket.currentMatchup === m;
-                  const isPast = bracket.currentRound > r ||
-                    (bracket.currentRound === r && bracket.currentMatchup > m);
 
                   const songA = r === 0 ? bracket.seeds[m * 2]     : (matchup?.songA ?? null);
                   const songB = r === 0 ? bracket.seeds[m * 2 + 1] : (matchup?.songB ?? null);
@@ -192,12 +190,12 @@ function VisualBracket({ bracket }: { bracket: BracketState }) {
                       <BracketSlot song={songA}
                         isWinner={!!winner && winner.id === songA?.id}
                         isLoser={!!winner && winner.id !== songA?.id}
-                        isActive={isActive} isPast={isPast} />
+                        isActive={isActive} />
                       <div style={{ height: SLOT_GAP }} />
                       <BracketSlot song={songB}
                         isWinner={!!winner && winner.id === songB?.id}
                         isLoser={!!winner && winner.id !== songB?.id}
-                        isActive={isActive} isPast={isPast} />
+                        isActive={isActive} />
                     </div>
                   );
                 })}
@@ -212,12 +210,11 @@ function VisualBracket({ bracket }: { bracket: BracketState }) {
 
 // ─── Bracket slot ─────────────────────────────────────────────────────────────
 
-function BracketSlot({ song, isWinner, isLoser, isActive, isPast }: {
+function BracketSlot({ song, isWinner, isLoser, isActive }: {
   song: Song | null;
   isWinner: boolean;
   isLoser: boolean;
   isActive: boolean;
-  isPast: boolean;
 }) {
   const cls = [
     styles.bSlot,

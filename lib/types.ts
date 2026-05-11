@@ -15,31 +15,14 @@ export type AppStep =
 
 export type MediaPreference = "movies" | "shows" | "both";
 
-export const STEP_COLORS: Record<AppStep, string> = {
-  landing:            "#c026d3",
-  "music-genres":     "#7c3aed",
-  "top-artists":      "#e11d48",
-  "song-bracket":     "#1d4ed8",
-  "media-preference": "#0f172a",
-  "movie-genres":     "#059669",
-  "actor-koth":       "#312e81",
-  "movie-kbc":        "#14532d",
-  "show-kbc":         "#78350f",
-  processing:         "#7e22ce",
-  result:             "#c026d3",
-};
-
 // ─── Music Types ─────────────────────────────────────────────────────────────
 
 export interface Artist {
   name: string;
-  mbid?: string;
   tags: string[];
   imageUrl?: string;
   listeners?: number;
 }
-
-export type SpotifyArtist = Artist;
 
 export interface Song {
   id: string;
@@ -47,7 +30,6 @@ export interface Song {
   artist: string;
   artistId: string;
   albumCover: string;
-  previewUrl?: string;
 }
 
 // ─── Bracket Types ────────────────────────────────────────────────────────────
@@ -56,11 +38,6 @@ export interface BracketMatchup {
   songA: Song;
   songB: Song;
   winner: Song | null;
-}
-
-export interface BracketSlot {
-  song: Song | null;
-  isEliminated: boolean;
 }
 
 export interface BracketState {
@@ -226,29 +203,6 @@ export const CORE_TYPES = [
   "The Explorer",
   "The Hedonist",
 ] as const;
-
-// ─── API Response Types ───────────────────────────────────────────────────────
-
-export interface ArtistSearchResponse {
-  artists: Artist[];
-}
-
-export interface SongPoolResponse {
-  songs: Song[];
-  enrichedArtists: Artist[];
-}
-
-export interface GenresResponse {
-  genres: string[];
-}
-
-export interface TMDBGenresResponse {
-  genres: Array<{ id: number; name: string }>;
-}
-
-export interface ResultResponse {
-  result: TypedResult;
-}
 
 // ─── Bracket helpers ──────────────────────────────────────────────────────────
 

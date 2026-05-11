@@ -51,14 +51,6 @@ export async function lastfmFetch(
 
 // ─── Typed response helpers ────────────────────────────────────────────────
 
-export interface LfmArtistMatch {
-  name: string;
-  listeners: string;
-  mbid: string;
-  url: string;
-  image: LastfmImage[];
-}
-
 export interface LfmTrack {
   name: string;
   playcount?: string;
@@ -82,16 +74,6 @@ export interface LfmTag {
   count: number;
   name: string;
   url: string;
-}
-
-export async function searchArtists(query: string, limit = 8): Promise<LfmArtistMatch[]> {
-  const data = (await lastfmFetch({
-    method: "artist.search",
-    artist: query,
-    limit,
-  })) as { results: { artistmatches: { artist: LfmArtistMatch[] } } };
-
-  return data.results?.artistmatches?.artist ?? [];
 }
 
 export async function getArtistTopTracks(artistName: string, limit = 6): Promise<LfmTrack[]> {

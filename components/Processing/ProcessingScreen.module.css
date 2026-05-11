@@ -49,8 +49,6 @@
   background: rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-full);
   overflow: hidden;
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .fill {

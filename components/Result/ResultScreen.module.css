@@ -64,15 +64,6 @@
   font-style: italic;
 }
 
-/* ─── Summary (legacy, keep for fallback) ────────────────────────────────── */
-.summary {
-  max-width: 520px;
-  font-size: var(--text-lg);
-  line-height: 1.75;
-  color: rgba(255, 255, 255, 0.85);
-  text-align: center;
-}
-
 /* ─── Traits ─────────────────────────────────────────────────────────────── */
 .traits {
   display: flex;
@@ -94,14 +85,6 @@
 
 /* ─── Sections wrapper ───────────────────────────────────────────────────── */
 .sections {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-/* ─── Breakdown cards (legacy alias) ─────────────────────────────────────── */
-.breakdowns {
   width: 100%;
   display: flex;
   flex-direction: column;

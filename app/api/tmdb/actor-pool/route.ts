@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import type { Actor } from "@/lib/types";
+import { tmdbFetch } from "@/lib/tmdbClient";
+import { shuffle } from "@/lib/utils";
 
 interface TMDBPerson {
   id: number;
@@ -11,27 +13,6 @@ interface TMDBPerson {
 }
 
 const IMG_BASE = "https://image.tmdb.org/t/p/w300";
-
-async function tmdbFetch(path: string): Promise<unknown> {
-  const apiKey = process.env.TMDB_API_KEY;
-  if (!apiKey) throw new Error("Missing TMDB_API_KEY");
-  const sep = path.includes("?") ? "&" : "?";
-  const res = await fetch(
-    `https://api.themoviedb.org/3${path}${sep}api_key=${apiKey}`,
-    { cache: "no-store" }
-  );
-  if (!res.ok) throw new Error(`TMDB error ${res.status}`);
-  return res.json();
-}
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 // GET — no user-specific params needed, just return the most famous actors
 export async function GET() {

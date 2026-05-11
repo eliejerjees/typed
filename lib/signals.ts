@@ -18,7 +18,7 @@ const TMDB_GENRE_NAMES: Record<number, string> = {
   10759: "Action & Adventure", 10765: "Sci-Fi & Fantasy",
 };
 
-export function genreNamesFromIds(ids: number[]): string[] {
+function genreNamesFromIds(ids: number[]): string[] {
   return ids.map((id) => TMDB_GENRE_NAMES[id]).filter(Boolean);
 }
 

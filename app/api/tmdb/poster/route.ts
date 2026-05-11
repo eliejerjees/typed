@@ -1,18 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { tmdbFetch } from "@/lib/tmdbClient";
 
 const IMG_BASE = "https://image.tmdb.org/t/p/w500";
-
-async function tmdbFetch(path: string): Promise<unknown> {
-  const apiKey = process.env.TMDB_API_KEY;
-  if (!apiKey) throw new Error("Missing TMDB_API_KEY");
-  const sep = path.includes("?") ? "&" : "?";
-  const res = await fetch(
-    `https://api.themoviedb.org/3${path}${sep}api_key=${apiKey}`,
-    { cache: "force-cache" }
-  );
-  if (!res.ok) throw new Error(`TMDB error ${res.status}`);
-  return res.json();
-}
 
 export async function GET(req: NextRequest) {
   const title = req.nextUrl.searchParams.get("title");
@@ -21,10 +10,10 @@ export async function GET(req: NextRequest) {
   try {
     // Try movie first, then TV
     const [movieData, tvData] = await Promise.allSettled([
-      tmdbFetch(`/search/movie?query=${encodeURIComponent(title)}&include_adult=false`) as Promise<{
+      tmdbFetch(`/search/movie?query=${encodeURIComponent(title)}&include_adult=false`, "force-cache") as Promise<{
         results: Array<{ poster_path: string | null; vote_count: number }>;
       }>,
-      tmdbFetch(`/search/tv?query=${encodeURIComponent(title)}&include_adult=false`) as Promise<{
+      tmdbFetch(`/search/tv?query=${encodeURIComponent(title)}&include_adult=false`, "force-cache") as Promise<{
         results: Array<{ poster_path: string | null; vote_count: number }>;
       }>,
     ]);

@@ -8,8 +8,6 @@
   justify-content: center;
   position: relative;
   overflow: hidden;
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
   padding: 24px;
 }
 
