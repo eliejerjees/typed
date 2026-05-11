@@ -16,40 +16,41 @@ import type {
 } from "@/lib/types";
 import { DEFAULT_APP_DATA, buildInitialBracket } from "@/lib/types";
 
-import LandingScreen      from "@/components/Landing/LandingScreen";
-import ProcessingScreen   from "@/components/Processing/ProcessingScreen";
-import ResultScreen       from "@/components/Result/ResultScreen";
-import MusicGenresStep    from "@/components/steps/MusicGenres/MusicGenresStep";
-import TopArtistsStep     from "@/components/steps/TopArtists/TopArtistsStep";
-import SongBracketStep    from "@/components/steps/SongBracket/SongBracketStep";
+import Link from "next/link";
+import LandingScreen from "@/components/Landing/LandingScreen";
+import ProcessingScreen from "@/components/Processing/ProcessingScreen";
+import ResultScreen from "@/components/Result/ResultScreen";
+import MusicGenresStep from "@/components/steps/MusicGenres/MusicGenresStep";
+import TopArtistsStep from "@/components/steps/TopArtists/TopArtistsStep";
+import SongBracketStep from "@/components/steps/SongBracket/SongBracketStep";
 import MediaPreferenceStep from "@/components/steps/MediaPreference/MediaPreferenceStep";
-import MovieGenresStep    from "@/components/steps/MovieGenres/MovieGenresStep";
-import ActorKOTHStep      from "@/components/steps/ActorKOTH/ActorKOTHStep";
-import MediaKBCStep       from "@/components/steps/MediaKBC/MediaKBCStep";
+import MovieGenresStep from "@/components/steps/MovieGenres/MovieGenresStep";
+import ActorKOTHStep from "@/components/steps/ActorKOTH/ActorKOTHStep";
+import MediaKBCStep from "@/components/steps/MediaKBC/MediaKBCStep";
 
-const LS_KEY      = "typed_session_v3";
+const LS_KEY = "typed_session_v3";
 const LS_STEP_KEY = "typed_step_v3";
 
 const STEP_BG: Record<AppStep, string> = {
-  "landing":           "#c026d3",
-  "music-genres":      "#7c3aed",
-  "top-artists":       "#e11d48",
-  "song-bracket":      "#1d4ed8",
-  "media-preference":  "#0f172a",
-  "movie-genres":      "#059669",
-  "actor-koth":        "#312e81",
-  "movie-kbc":         "#14532d",
-  "show-kbc":          "#78350f",
-  "processing":        "#7e22ce",
-  "result":            "#c026d3",
+  "landing": "#c026d3",
+  "music-genres": "#7c3aed",
+  "top-artists": "#e11d48",
+  "song-bracket": "#1d4ed8",
+  "media-preference": "#0f172a",
+  "movie-genres": "#059669",
+  "actor-koth": "#312e81",
+  "movie-kbc": "#14532d",
+  "show-kbc": "#78350f",
+  "processing": "#7e22ce",
+  "result": "#c026d3",
 };
 
 export default function Home() {
-  const [step, setStep]           = useState<AppStep>("landing");
-  const [appData, setAppData]     = useState<AppData>(DEFAULT_APP_DATA);
-  const [fetchError, setFetchError]     = useState<string | null>(null);
+  const [step, setStep] = useState<AppStep>("landing");
+  const [appData, setAppData] = useState<AppData>(DEFAULT_APP_DATA);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [isFetchingPool, setIsFetchingPool] = useState(false);
-  const [hasProgress, setHasProgress]   = useState(false);
+  const [hasProgress, setHasProgress] = useState(false);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -80,7 +81,7 @@ export default function Home() {
 
   function loadFromStorage(): { step: AppStep; data: AppData } | null {
     try {
-      const raw      = localStorage.getItem(LS_KEY);
+      const raw = localStorage.getItem(LS_KEY);
       const savedStep = localStorage.getItem(LS_STEP_KEY) as AppStep | null;
       if (!raw || !savedStep) return null;
       return { step: savedStep, data: JSON.parse(raw) as AppData };
@@ -114,8 +115,8 @@ export default function Home() {
         body: JSON.stringify({ artistNames: artists.map((a) => a.name), genres }),
       });
       const data = await res.json();
-      const songs: Song[]     = data.songs ?? [];
-      const enrichedArtists   = data.enrichedArtists ?? artists;
+      const songs: Song[] = data.songs ?? [];
+      const enrichedArtists = data.enrichedArtists ?? artists;
 
       if (songs.length < 16) {
         setFetchError("Couldn't load enough songs. Try different artists.");
@@ -230,12 +231,28 @@ export default function Home() {
   const variants = {
     initial: { opacity: 0, y: 24, scale: 0.99 },
     animate: { opacity: 1, y: 0, scale: 1 },
-    exit:    { opacity: 0, y: -24, scale: 1.01 },
+    exit: { opacity: 0, y: -24, scale: 1.01 },
   };
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <main style={{ minHeight: "100vh", position: "relative" }}>
+      <Link
+        href="/about"
+        style={{
+          position: "fixed",
+          top: 24,
+          right: 28,
+          zIndex: 300,
+          color: "rgba(255,255,255,0.8)",
+          textDecoration: "none",
+          fontWeight: 800,
+          fontSize: "0.95rem",
+          letterSpacing: "0.04em",
+        }}
+      >
+        About
+      </Link>
       <AnimatePresence mode="wait">
         <motion.div
           key={step}
